@@ -26,6 +26,7 @@ export function AppShell({ children, wsClient, isMobile = false }: AppShellProps
   const setTargetAgent = useChatDockStore((s) => s.setTargetAgent);
   const connectionStatus = useOfficeStore((s) => s.connectionStatus);
   const agents = useOfficeStore((s) => s.agents);
+  const selectedAgentId = useOfficeStore((s) => s.selectedAgentId);
 
   useEffect(() => {
     if (isMobile) {
@@ -54,6 +55,17 @@ export function AppShell({ children, wsClient, isMobile = false }: AppShellProps
       }
     }
   }, [connectionStatus, agents, setTargetAgent]);
+
+  // Sync chat target when sidebar agent selection changes
+  useEffect(() => {
+    if (!selectedAgentId) return;
+    const agent = agents.get(selectedAgentId);
+    if (!agent || agent.isSubAgent) return;
+    const currentTarget = useChatDockStore.getState().targetAgentId;
+    if (currentTarget !== selectedAgentId) {
+      setTargetAgent(selectedAgentId);
+    }
+  }, [selectedAgentId, agents, setTargetAgent]);
 
   const content = children ?? <Outlet />;
 
