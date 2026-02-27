@@ -4,18 +4,36 @@ import i18n from "@/i18n";
 export const SVG_WIDTH = 1200;
 export const SVG_HEIGHT = 700;
 
+// Unified office floor plan: one building shell with internal partitions
+export const OFFICE = {
+  x: 30,
+  y: 20,
+  width: SVG_WIDTH - 60,
+  height: SVG_HEIGHT - 40,
+  wallThickness: 6,
+  cornerRadius: 18,
+  corridorWidth: 28,
+} as const;
+
+const halfW = (OFFICE.width - OFFICE.corridorWidth) / 2;
+const halfH = (OFFICE.height - OFFICE.corridorWidth) / 2;
+const rightX = OFFICE.x + halfW + OFFICE.corridorWidth;
+const bottomY = OFFICE.y + halfH + OFFICE.corridorWidth;
+
 export const ZONES = {
-  desk: { x: 40, y: 40, width: 540, height: 300, label: "固定工位区" },
-  meeting: { x: 620, y: 40, width: 540, height: 300, label: "会议区" },
-  hotDesk: { x: 40, y: 380, width: 540, height: 280, label: "热工位区" },
-  lounge: { x: 620, y: 380, width: 540, height: 280, label: "休息区" },
+  desk: { x: OFFICE.x, y: OFFICE.y, width: halfW, height: halfH, label: "固定工位区" },
+  meeting: { x: rightX, y: OFFICE.y, width: halfW, height: halfH, label: "会议区" },
+  hotDesk: { x: OFFICE.x, y: bottomY, width: halfW, height: halfH, label: "热工位区" },
+  lounge: { x: rightX, y: bottomY, width: halfW, height: halfH, label: "休息区" },
 } as const;
 
 export const ZONE_COLORS = {
-  desk: "#e8edf5",
-  meeting: "#e0eaf5",
-  hotDesk: "#e5e8f0",
-  lounge: "#e8e5f0",
+  desk: "#f4f6f9",
+  meeting: "#eef3fa",
+  hotDesk: "#f1f3f7",
+  lounge: "#f3f1f7",
+  corridor: "#e8ecf1",
+  wall: "#8b9bb0",
 } as const;
 
 export const ZONE_COLORS_DARK = {
@@ -23,6 +41,8 @@ export const ZONE_COLORS_DARK = {
   meeting: "#1a2744",
   hotDesk: "#1e2433",
   lounge: "#231e33",
+  corridor: "#0f172a",
+  wall: "#475569",
 } as const;
 
 export const STATUS_COLORS: Record<AgentVisualStatus, string> = {
