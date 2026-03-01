@@ -21,6 +21,7 @@ import type {
   SessionInfo,
   SessionPreview,
   SkillInfo,
+  SkillInstallResult,
   StatusSummary,
   ToolCatalog,
   UpdateRunResult,
@@ -297,8 +298,8 @@ export class MockAdapter implements GatewayAdapter {
     return { connected: true, message: "WhatsApp connected successfully" };
   }
 
-  async skillsInstall(_name: string, _installId: string): Promise<{ ok: boolean; message: string }> {
-    return { ok: true, message: "Mock install completed" };
+  async skillsInstall(_name: string, _installId: string): Promise<SkillInstallResult> {
+    return { ok: true, message: "Mock install completed", stdout: "mock: skill installed successfully", code: 0 };
   }
 
   async skillsUpdate(_skillKey: string, _patch: SkillUpdatePatch): Promise<{ ok: boolean }> {

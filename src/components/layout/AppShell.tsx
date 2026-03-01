@@ -8,6 +8,8 @@ import { useOfficeStore } from "@/store/office-store";
 import { useChatDockStore } from "@/store/console-stores/chat-dock-store";
 import { Sidebar } from "./Sidebar";
 import { TopBar } from "./TopBar";
+import { ToastContainer } from "@/components/shared/ToastContainer";
+import { RestartBanner } from "@/components/shared/RestartBanner";
 
 interface AppShellProps {
   children?: ReactNode;
@@ -71,7 +73,9 @@ export function AppShell({ children, wsClient, isMobile = false }: AppShellProps
 
   return (
     <div className="flex h-screen w-screen flex-col bg-gray-50 text-gray-900 dark:bg-gray-950 dark:text-gray-100">
+      <RestartBanner />
       <TopBar isMobile={isMobile} />
+      <ToastContainer />
       <div className="relative flex flex-1 overflow-hidden">
         <main className="relative flex flex-1 flex-col overflow-hidden">
           <div className="relative flex-1 overflow-hidden">

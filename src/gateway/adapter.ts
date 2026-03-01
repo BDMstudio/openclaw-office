@@ -23,6 +23,7 @@ import type {
   SessionInfo,
   SessionPreview,
   SkillInfo,
+  SkillInstallResult,
   StatusSummary,
   ToolCatalog,
   UpdateRunResult,
@@ -60,7 +61,7 @@ export interface GatewayAdapter {
 
   // Skills
   skillsStatus(): Promise<SkillInfo[]>;
-  skillsInstall(name: string, installId: string): Promise<{ ok: boolean; message: string }>;
+  skillsInstall(name: string, installId: string): Promise<SkillInstallResult>;
   skillsUpdate(skillKey: string, patch: SkillUpdatePatch): Promise<{ ok: boolean }>;
 
   // Cron

@@ -9,6 +9,12 @@ import type {
 } from "@/gateway/adapter-types";
 import { waitForAdapter } from "@/gateway/adapter-provider";
 
+export interface RestartState {
+  status: "pending" | "disconnected" | "reconnecting" | "complete";
+  startedAt: number;
+  estimatedDelayMs: number;
+}
+
 interface ConfigStoreState {
   config: Record<string, unknown> | null;
   hash: string | null;
@@ -29,6 +35,12 @@ interface ConfigStoreState {
 
   catalogModels: ModelCatalogEntry[];
   catalogLoading: boolean;
+
+  restartState: RestartState | null;
+  setRestartPending: (delayMs: number) => void;
+  setRestartReconnecting: () => void;
+  setRestartComplete: () => void;
+  clearRestart: () => void;
 
   fetchConfig: () => Promise<void>;
   patchConfig: (patch: Record<string, unknown>) => Promise<ConfigPatchResult>;
@@ -59,6 +71,24 @@ export const useConfigStore = create<ConfigStoreState>((set, get) => ({
   catalogModels: [],
   catalogLoading: false,
 
+  restartState: null,
+
+  setRestartPending: (delayMs) => set({
+    restartState: { status: "pending", startedAt: Date.now(), estimatedDelayMs: delayMs },
+  }),
+
+  setRestartReconnecting: () => set((s) => {
+    if (!s.restartState) return {};
+    return { restartState: { ...s.restartState, status: "reconnecting" } };
+  }),
+
+  setRestartComplete: () => set((s) => {
+    if (!s.restartState) return {};
+    return { restartState: { ...s.restartState, status: "complete" } };
+  }),
+
+  clearRestart: () => set({ restartState: null }),
+
   fetchConfig: async () => {
     set({ loading: true, error: null });
     try {
@@ -88,7 +118,9 @@ export const useConfigStore = create<ConfigStoreState>((set, get) => ({
           config: result.config,
           error: null,
         });
-        // Refresh to get new hash
+        if (result.restart?.scheduled) {
+          get().setRestartPending(result.restart.delayMs);
+        }
         await get().fetchConfig();
       } else {
         const errMsg = result.error ?? "config patch failed";

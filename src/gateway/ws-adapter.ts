@@ -22,6 +22,7 @@ import type {
   SessionInfo,
   SessionPreview,
   SkillInfo,
+  SkillInstallResult,
   StatusSummary,
   ToolCatalog,
   UpdateRunResult,
@@ -113,8 +114,8 @@ export class WsAdapter implements GatewayAdapter {
     return mapSkillEntries(result.skills ?? []);
   }
 
-  async skillsInstall(name: string, installId: string): Promise<{ ok: boolean; message: string }> {
-    return this.rpcClient.request<{ ok: boolean; message: string }>("skills.install", { name, installId });
+  async skillsInstall(name: string, installId: string): Promise<SkillInstallResult> {
+    return this.rpcClient.request<SkillInstallResult>("skills.install", { name, installId });
   }
 
   async skillsUpdate(skillKey: string, patch: SkillUpdatePatch): Promise<{ ok: boolean }> {

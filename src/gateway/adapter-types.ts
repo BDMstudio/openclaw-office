@@ -193,6 +193,15 @@ export interface UsageInfo {
   providers: UsageProviderInfo[];
 }
 
+export interface SkillInstallResult {
+  ok: boolean;
+  message: string;
+  stdout?: string;
+  stderr?: string;
+  code?: number | null;
+  warnings?: string[];
+}
+
 // Streaming 事件类型（chat 事件的 payload 格式）
 export type ChatStreamEvent =
   | { type: "stream.start"; runId: string; sessionKey?: string }
