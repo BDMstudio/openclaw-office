@@ -10,6 +10,8 @@ import type {
 } from "@/gateway/types";
 import { GatewayWsClient } from "@/gateway/ws-client";
 import { EventThrottle } from "@/lib/event-throttle";
+import { PerceptionEngine } from "@/perception/perception-engine";
+import { useProjectionStore } from "@/perception/projection-store";
 import { useOfficeStore } from "@/store/office-store";
 import { useSubAgentPoller } from "./useSubAgentPoller";
 import { useUsagePoller } from "./useUsagePoller";
@@ -23,6 +25,7 @@ export function useGatewayConnection({ url, token }: UseGatewayConnectionOptions
   const wsRef = useRef<GatewayWsClient | null>(null);
   const rpcRef = useRef<GatewayRpcClient | null>(null);
   const throttleRef = useRef<EventThrottle | null>(null);
+  const perceptionRef = useRef<PerceptionEngine | null>(null);
 
   const setConnectionStatus = useOfficeStore((s) => s.setConnectionStatus);
   const initAgents = useOfficeStore((s) => s.initAgents);
@@ -39,12 +42,19 @@ export function useGatewayConnection({ url, token }: UseGatewayConnectionOptions
     // Mock mode: use MockAdapter directly (no WebSocket needed)
     if (isMockMode()) {
       let unsubEvent: (() => void) | null = null;
+      const mockPerception = new PerceptionEngine();
+      perceptionRef.current = mockPerception;
+      const applyPerceivedEvent = useProjectionStore.getState().applyPerceivedEvent;
+      mockPerception.onPerceived((event) => {
+        applyPerceivedEvent(event);
+      });
 
       void initAdapter("mock").then(async (adapter) => {
         // 1. Wire event handler FIRST so no events are lost
         unsubEvent = adapter.onEvent((event: string, payload: unknown) => {
           if (event === "agent") {
             processAgentEvent(payload as AgentEventPayload);
+            mockPerception.ingest(payload as AgentEventPayload);
           }
         });
 
@@ -74,17 +84,28 @@ export function useGatewayConnection({ url, token }: UseGatewayConnectionOptions
       });
       return () => {
         unsubEvent?.();
+        mockPerception.destroy();
+        perceptionRef.current = null;
       };
     }
 
     const ws = new GatewayWsClient();
     const rpc = new GatewayRpcClient(ws);
     const throttle = new EventThrottle();
+    const perception = new PerceptionEngine();
 
     wsRef.current = ws;
     rpcRef.current = rpc;
     throttleRef.current = throttle;
+    perceptionRef.current = perception;
 
+    // Perception Engine → ProjectionStore (Living Office 管道)
+    const applyPerceivedEvent = useProjectionStore.getState().applyPerceivedEvent;
+    perception.onPerceived((event) => {
+      applyPerceivedEvent(event);
+    });
+
+    // 旧管道: EventThrottle → processAgentEvent (2D/3D Office 视图)
     throttle.onBatch((events) => {
       for (const event of events) {
         processAgentEvent(event);
@@ -110,7 +131,9 @@ export function useGatewayConnection({ url, token }: UseGatewayConnectionOptions
     });
 
     ws.onEvent("agent", (frame: GatewayEventFrame) => {
-      throttle.push(frame.payload as AgentEventPayload);
+      const payload = frame.payload as AgentEventPayload;
+      throttle.push(payload);
+      perception.ingest(payload);
     });
 
     ws.onEvent("health", (frame: GatewayEventFrame) => {
@@ -125,10 +148,12 @@ export function useGatewayConnection({ url, token }: UseGatewayConnectionOptions
 
     return () => {
       throttle.destroy();
+      perception.destroy();
       ws.disconnect();
       wsRef.current = null;
       rpcRef.current = null;
       throttleRef.current = null;
+      perceptionRef.current = null;
     };
   }, [url, token, setConnectionStatus, initAgents, processAgentEvent, setOperatorScopes, setMaxSubAgents, setAgentToAgentConfig]);
 
