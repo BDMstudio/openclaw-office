@@ -6,6 +6,7 @@
     "tokensLabel": "Tokens",
     "console": "Console",
     "office": "Office",
+    "livingOffice": "Living Office",
     "pageTitles": {
       "dashboard": "Dashboard",
       "channels": "Channels",
