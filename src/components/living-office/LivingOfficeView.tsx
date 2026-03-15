@@ -197,6 +197,7 @@ export function LivingOfficeView() {
               deskId={desk.id}
               name={agent?.agentId ?? desk.agentName}
               perceivedState={agent?.state ?? "IDLE"}
+              toolName={agent?.tool}
             />
           ))}
 

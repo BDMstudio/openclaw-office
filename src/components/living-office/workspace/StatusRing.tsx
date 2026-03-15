@@ -13,9 +13,11 @@ interface StatusRingProps {
 
 export function StatusRing({ status }: StatusRingProps) {
   const color = STATUS_COLORS[status];
+  const isActive = status === "busy" || status === "blocked";
 
   return (
     <div
+      className={isActive ? "lo-desk-ring-active" : "lo-desk-ring-idle"}
       style={{
         position: "absolute",
         right: 10,

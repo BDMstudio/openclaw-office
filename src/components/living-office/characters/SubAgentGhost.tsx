@@ -42,7 +42,13 @@ export function SubAgentGhost({ agentId, name, position, active }: SubAgentGhost
         pointerEvents: "none",
       }}
     >
-      <CharacterBody name={`tmp:${name}`} cssClass="lo-subagent-body" />
+      <CharacterBody
+        name={`tmp:${name}`}
+        agentId={agentId}
+        cssClass="lo-subagent-body"
+        gazeDirection={0}
+        state="COLLABORATING"
+      />
     </div>
   );
 }

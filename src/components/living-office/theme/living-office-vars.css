@@ -199,25 +199,103 @@
 
 /* === Agent Character 2.5D Animations === */
 
-/* IDLE: breathing — subtle scale oscillation */
+/* IDLE: breathing — gentle float up/down with body sway */
 @keyframes lo-char-breathe {
   0%,
   100% {
-    transform: scale(1);
+    transform: translateY(0) scale(1);
   }
   50% {
-    transform: scale(1.02);
+    transform: translateY(-2px) scale(1.01);
+  }
+}
+
+@keyframes lo-char-idle-sway {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  25% {
+    transform: rotate(1deg);
+  }
+  75% {
+    transform: rotate(-1deg);
   }
 }
 
 .lo-char-state-idle .lo-char-body {
-  animation: lo-char-breathe 3.5s ease-in-out infinite;
+  animation: lo-char-breathe 3s ease-in-out infinite;
 }
 
-/* INCOMING: brightness lift */
+.lo-char-state-idle .lo-char-torso {
+  animation: lo-char-idle-sway 5s ease-in-out infinite;
+}
+
+/* Idle arm swing */
+@keyframes lo-char-arm-swing-left {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  50% {
+    transform: rotate(5deg);
+  }
+}
+
+@keyframes lo-char-arm-swing-right {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  50% {
+    transform: rotate(-5deg);
+  }
+}
+
+.lo-char-state-idle .lo-char-arm-left {
+  animation: lo-char-arm-swing-left 3.5s ease-in-out infinite;
+}
+
+.lo-char-state-idle .lo-char-arm-right {
+  animation: lo-char-arm-swing-right 3.5s ease-in-out infinite 0.3s;
+}
+
+/* Eye blink */
+@keyframes lo-char-blink {
+  0%,
+  92%,
+  100% {
+    transform: scaleY(1);
+  }
+  95% {
+    transform: scaleY(0.1);
+  }
+}
+
+.lo-char-state-idle .lo-char-eye {
+  animation: lo-char-blink 4s ease-in-out infinite;
+}
+
+/* INCOMING: brightness lift + pulse ring */
 .lo-char-state-incoming .lo-char-body {
-  filter: brightness(1.1);
+  filter: brightness(1.15);
   transition: filter 0.3s ease;
+}
+
+@keyframes lo-char-incoming-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(92, 200, 255, 0.4);
+  }
+  70% {
+    box-shadow: 0 0 0 8px rgba(92, 200, 255, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(92, 200, 255, 0);
+  }
+}
+
+.lo-char-state-incoming .lo-char-head {
+  animation: lo-char-incoming-pulse 1s ease-out;
 }
 
 /* ACK: nod — micro translateY bounce */
@@ -226,8 +304,11 @@
   100% {
     transform: translateY(0);
   }
-  40% {
+  30% {
     transform: translateY(3px);
+  }
+  60% {
+    transform: translateY(1px);
   }
 }
 
@@ -235,9 +316,22 @@
   animation: lo-char-nod 0.6s ease-out;
 }
 
-/* WORKING: steady brightness + enhanced glow */
+/* WORKING: steady brightness + enhanced glow + arm busy animation */
+@keyframes lo-char-work-arm {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  25% {
+    transform: rotate(-12deg);
+  }
+  75% {
+    transform: rotate(8deg);
+  }
+}
+
 .lo-char-state-working .lo-char-body {
-  filter: brightness(1.05);
+  filter: brightness(1.08);
 }
 
 .lo-char-state-working .lo-char-torso {
@@ -246,56 +340,170 @@
     0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
-/* TOOL_CALL: opacity flash on working base */
-@keyframes lo-char-tool-flash {
+.lo-char-state-working .lo-char-arm-left {
+  animation: lo-char-work-arm 1.2s ease-in-out infinite;
+}
+
+.lo-char-state-working .lo-char-arm-right {
+  animation: lo-char-work-arm 1.2s ease-in-out infinite 0.6s;
+}
+
+/* TOOL_CALL: pulse glow on torso */
+@keyframes lo-char-tool-pulse {
   0%,
   100% {
-    opacity: 1;
+    box-shadow:
+      0 0 12px rgba(251, 191, 36, 0.3),
+      0 4px 12px rgba(0, 0, 0, 0.3);
   }
   50% {
-    opacity: 0.85;
+    box-shadow:
+      0 0 24px rgba(251, 191, 36, 0.6),
+      0 4px 12px rgba(0, 0, 0, 0.3);
   }
 }
 
 .lo-char-state-tool-call .lo-char-body {
-  filter: brightness(1.05);
+  filter: brightness(1.08);
 }
 
 .lo-char-state-tool-call .lo-char-torso {
-  animation: lo-char-tool-flash 0.8s ease-in-out infinite;
+  animation: lo-char-tool-pulse 1.2s ease-in-out infinite;
 }
 
-/* WAITING: slow blink */
-@keyframes lo-char-wait-blink {
+/* WAITING: slow body sway + eye close */
+@keyframes lo-char-wait-sway {
   0%,
   100% {
+    transform: translateY(0);
     opacity: 1;
   }
   50% {
-    opacity: 0.6;
+    transform: translateY(1px);
+    opacity: 0.7;
   }
 }
 
 .lo-char-state-waiting .lo-char-body {
-  animation: lo-char-wait-blink 2.5s ease-in-out infinite;
+  animation: lo-char-wait-sway 3s ease-in-out infinite;
 }
 
-/* BLOCKED: red overlay */
+.lo-char-state-waiting .lo-char-eye {
+  opacity: 0.5;
+}
+
+/* BLOCKED: red overlay + shake */
+@keyframes lo-char-shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  20% {
+    transform: translateX(-2px);
+  }
+  40% {
+    transform: translateX(2px);
+  }
+  60% {
+    transform: translateX(-1px);
+  }
+  80% {
+    transform: translateX(1px);
+  }
+}
+
 .lo-char-state-blocked .lo-char-torso {
   background: linear-gradient(180deg, #ff8888, #cc4444) !important;
   box-shadow:
-    0 0 18px rgba(255, 100, 120, 0.4),
+    0 0 20px rgba(255, 100, 120, 0.5),
     0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
 .lo-char-state-blocked .lo-char-body {
-  filter: brightness(0.95);
+  animation: lo-char-shake 0.5s ease-in-out 3;
 }
 
-/* DONE: short brightness burst */
+/* Status indicator animations */
+@keyframes lo-status-gear-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.lo-status-gear {
+  display: inline-block;
+  animation: lo-status-gear-spin 2s linear infinite;
+  font-size: 11px;
+}
+
+@keyframes lo-status-hourglass-flip {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  50% {
+    transform: rotate(180deg);
+  }
+}
+
+.lo-status-hourglass {
+  display: inline-block;
+  animation: lo-status-hourglass-flip 3s ease-in-out infinite;
+  font-size: 12px;
+}
+
+@keyframes lo-status-alert-bounce {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-3px);
+  }
+}
+
+.lo-status-alert {
+  display: inline-block;
+  animation: lo-status-alert-bounce 0.6s ease-in-out infinite;
+}
+
+@keyframes lo-status-collab-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.15);
+  }
+}
+
+.lo-status-collab-icon {
+  display: inline-block;
+  animation: lo-status-collab-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes lo-status-incoming-bounce {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-2px);
+  }
+}
+
+.lo-status-incoming-icon {
+  display: inline-block;
+  animation: lo-status-incoming-bounce 0.8s ease-in-out infinite;
+}
+
+/* DONE: short brightness burst + arms up celebration */
 @keyframes lo-char-done-flash {
   0% {
-    filter: brightness(1.25);
+    filter: brightness(1.3);
   }
   100% {
     filter: brightness(1);
@@ -332,30 +540,139 @@
   animation: lo-char-recover-sweep 2s ease-out forwards;
 }
 
-/* WALKING: bob bounce during movement */
+/* WALKING: bob bounce + arm swing during movement */
 @keyframes lo-char-bob {
   0%,
   100% {
     transform: translateY(0);
   }
   50% {
-    transform: translateY(-2px);
+    transform: translateY(-3px);
+  }
+}
+
+@keyframes lo-char-walk-arm-left {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  50% {
+    transform: rotate(20deg);
+  }
+}
+
+@keyframes lo-char-walk-arm-right {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  50% {
+    transform: rotate(-20deg);
   }
 }
 
 .lo-char-walking .lo-char-body {
-  filter: brightness(1.1);
+  filter: brightness(1.05);
 }
 
 .lo-char-walking .lo-char-torso {
-  animation: lo-char-bob 0.5s ease-in-out infinite;
+  animation: lo-char-bob 0.4s ease-in-out infinite;
 }
 
-/* COLLABORATING: glow intensify */
+.lo-char-walking .lo-char-arm-left {
+  animation: lo-char-walk-arm-left 0.4s ease-in-out infinite;
+}
+
+.lo-char-walking .lo-char-arm-right {
+  animation: lo-char-walk-arm-right 0.4s ease-in-out infinite;
+}
+
+/* COLLABORATING: purple glow intensify */
 .lo-char-state-collaborating .lo-char-torso {
   box-shadow:
-    0 0 24px rgba(143, 125, 255, 0.4),
+    0 0 24px rgba(143, 125, 255, 0.5),
     0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.lo-char-state-collaborating .lo-char-arm-left {
+  animation: lo-char-work-arm 1s ease-in-out infinite;
+}
+
+/* Status ring pulse under feet */
+@keyframes lo-char-ring-pulse {
+  0%,
+  100% {
+    opacity: 0.4;
+    transform: translateX(-50%) scale(1);
+  }
+  50% {
+    opacity: 0.7;
+    transform: translateX(-50%) scale(1.1);
+  }
+}
+
+.lo-char-status-ring {
+  animation: lo-char-ring-pulse 2s ease-in-out infinite;
+}
+
+/* === Desk Environment Animations === */
+
+/* Desk status ring breathing when idle */
+@keyframes lo-desk-ring-breathe {
+  0%,
+  100% {
+    opacity: 0.7;
+    box-shadow: 0 0 8px currentColor;
+  }
+  50% {
+    opacity: 1;
+    box-shadow: 0 0 14px currentColor;
+  }
+}
+
+.lo-desk-ring-idle {
+  animation: lo-desk-ring-breathe 3s ease-in-out infinite;
+}
+
+/* Desk status ring active pulse */
+@keyframes lo-desk-ring-active-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 12px currentColor;
+  }
+  50% {
+    transform: scale(1.15);
+    box-shadow: 0 0 18px currentColor;
+  }
+}
+
+.lo-desk-ring-active {
+  animation: lo-desk-ring-active-pulse 1.2s ease-in-out infinite;
+}
+
+/* Monitor scan line when busy */
+@keyframes lo-desk-monitor-scan {
+  0% {
+    background-position: 0 -30px;
+  }
+  100% {
+    background-position: 0 30px;
+  }
+}
+
+.lo-desk-monitor-active {
+  background-image:
+    linear-gradient(
+      0deg,
+      transparent 0%,
+      rgba(92, 200, 255, 0.08) 45%,
+      rgba(92, 200, 255, 0.15) 50%,
+      rgba(92, 200, 255, 0.08) 55%,
+      transparent 100%
+    ) !important;
+  background-size: 100% 200%;
+  animation: lo-desk-monitor-scan 2s linear infinite;
 }
 
 /* Sub-agent ghost: lower opacity, scale transitions */

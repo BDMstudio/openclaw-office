@@ -6,10 +6,12 @@ import {
   AGENT_HOME_POSITIONS,
   CHARACTER_SIZE,
   CHARACTER_Z,
+  IDLE_WANDER_DURATION,
   MOVE_DURATION_MS,
   MOVE_EASING,
   type Position2D,
 } from "./constants";
+import { useIdleBehavior } from "./useIdleBehavior";
 
 interface AgentCharacter2D5Props {
   agentId: string;
@@ -18,6 +20,7 @@ interface AgentCharacter2D5Props {
   perceivedState: PerceivedAgentState;
   eventKind?: PerceivedKind;
   targetPosition?: Position2D;
+  toolName?: string;
 }
 
 export function AgentCharacter2D5({
@@ -27,6 +30,7 @@ export function AgentCharacter2D5({
   perceivedState,
   eventKind,
   targetPosition,
+  toolName,
 }: AgentCharacter2D5Props) {
   const homePos = AGENT_HOME_POSITIONS[deskId] ?? { left: 0, top: 0 };
   const [internalState, setInternalState] = useState<PerceivedAgentState>("IDLE");
@@ -36,7 +40,8 @@ export function AgentCharacter2D5({
   const prevStateRef = useRef<PerceivedAgentState>("IDLE");
   const walkTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
-  // Process state transitions
+  const idle = useIdleBehavior(internalState, homePos);
+
   useEffect(() => {
     if (!eventKind) return;
 
@@ -56,7 +61,6 @@ export function AgentCharacter2D5({
     }
   }, [eventKind, targetPosition]);
 
-  // Sync external state for direct state override (from ProjectionStore)
   useEffect(() => {
     if (perceivedState !== internalState && !eventKind) {
       prevStateRef.current = perceivedState;
@@ -89,14 +93,22 @@ export function AgentCharacter2D5({
     return () => clearTimeout(timer);
   }, [internalState, homePos]);
 
-  // Cleanup walk timers
   useEffect(() => {
     return () => clearTimeout(walkTimerRef.current);
   }, []);
 
+  // Compute final visual position = base + idle wander offset
+  const isIdleState = internalState === "IDLE";
+  const finalLeft = position.left + (isIdleState ? idle.wanderOffset.left : 0);
+  const finalTop = position.top + (isIdleState ? idle.wanderOffset.top : 0);
+
+  const isMoving = walking || idle.isWandering;
+  const moveDuration = walking ? MOVE_DURATION_MS : IDLE_WANDER_DURATION;
+  const moveEasing = walking ? MOVE_EASING : "ease-in-out";
+
   const stateClasses = [
     `lo-char-state-${cssClass}`,
-    walking ? "lo-char-walking" : "",
+    isMoving ? "lo-char-walking" : "",
   ]
     .filter(Boolean)
     .join(" ");
@@ -108,18 +120,25 @@ export function AgentCharacter2D5({
       className={`lo-character ${stateClasses}`}
       style={{
         position: "absolute",
-        left: position.left - CHARACTER_SIZE / 2,
-        top: position.top - CHARACTER_SIZE / 2,
+        left: finalLeft - CHARACTER_SIZE / 2,
+        top: finalTop - CHARACTER_SIZE / 2,
         width: CHARACTER_SIZE,
         transform: `translateZ(${CHARACTER_Z}px)`,
-        transition: walking
-          ? `left ${MOVE_DURATION_MS}ms ${MOVE_EASING}, top ${MOVE_DURATION_MS}ms ${MOVE_EASING}`
-          : "none",
+        transition: isMoving
+          ? `left ${moveDuration}ms ${moveEasing}, top ${moveDuration}ms ${moveEasing}`
+          : "left 0.3s ease, top 0.3s ease",
         zIndex: 100,
         pointerEvents: "none",
       }}
     >
-      <CharacterBody name={name} cssClass={stateClasses} />
+      <CharacterBody
+        name={name}
+        agentId={agentId}
+        cssClass={stateClasses}
+        gazeDirection={idle.gazeDirection}
+        state={internalState}
+        toolName={toolName}
+      />
     </div>
   );
 }

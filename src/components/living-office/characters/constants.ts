@@ -2,19 +2,51 @@
 
 // --- 角色尺寸 ---
 
-export const CHARACTER_SIZE = 34;
-export const HEAD_SIZE = 14;
-export const BODY_SIZE = 22;
+export const CHARACTER_SIZE = 40;
+export const HEAD_SIZE = 16;
+export const BODY_SIZE = 24;
 export const BODY_RADIUS = 12;
+export const EYE_SIZE = 3;
+export const EYE_SPACING = 5;
+export const ARM_WIDTH = 4;
+export const ARM_HEIGHT = 10;
 
 // --- 颜色 ---
 
 export const SKIN_COLOR = "#ffd8b4";
-export const BODY_GRADIENT_FROM = "#7dd5ff";
-export const BODY_GRADIENT_TO = "#5c8dff";
+export const EYE_COLOR = "#2c3e50";
 export const SHADOW_COLOR = "rgba(0, 0, 0, 0.35)";
 export const TAG_BG = "rgba(11, 18, 32, 0.75)";
 export const TAG_COLOR = "#e8f1ff";
+
+// 每个 Agent 的个性化衣服颜色（按 agentId hash 取色）
+export const AGENT_COLORS: Array<[string, string]> = [
+  ["#7dd5ff", "#5c8dff"], // 蓝
+  ["#ff9a76", "#e85d4a"], // 橙红
+  ["#a78bfa", "#7c3aed"], // 紫
+  ["#34d399", "#059669"], // 绿
+  ["#fbbf24", "#d97706"], // 金
+  ["#f472b6", "#db2777"], // 粉
+  ["#67e8f9", "#06b6d4"], // 青
+  ["#fb923c", "#ea580c"], // 橘
+];
+
+export function getAgentColor(agentId: string): [string, string] {
+  let hash = 0;
+  for (let i = 0; i < agentId.length; i++) {
+    hash = (hash * 31 + agentId.charCodeAt(i)) | 0;
+  }
+  return AGENT_COLORS[Math.abs(hash) % AGENT_COLORS.length];
+}
+
+// --- Idle 行为参数 ---
+
+export const IDLE_WANDER_RADIUS = 18;
+export const IDLE_WANDER_INTERVAL_MIN = 3000;
+export const IDLE_WANDER_INTERVAL_MAX = 8000;
+export const IDLE_GAZE_INTERVAL_MIN = 2000;
+export const IDLE_GAZE_INTERVAL_MAX = 5000;
+export const IDLE_WANDER_DURATION = 1200;
 
 // --- 角色在等距空间中的浮起高度 ---
 

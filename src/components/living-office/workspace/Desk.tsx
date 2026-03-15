@@ -51,6 +51,7 @@ export function Desk({ config, status = "idle", bubble = "" }: DeskProps) {
 
       {/* Monitor */}
       <div
+        className={status === "busy" ? "lo-desk-monitor-active" : "lo-desk-monitor-idle"}
         style={{
           position: "absolute",
           left: 46,
@@ -59,9 +60,14 @@ export function Desk({ config, status = "idle", bubble = "" }: DeskProps) {
           height: 30,
           borderRadius: 8,
           background:
-            `linear-gradient(180deg, color-mix(in srgb, var(--lo-cyan) 35%, transparent), color-mix(in srgb, var(--lo-cyan) 8%, transparent))`,
+            status === "busy"
+              ? `linear-gradient(180deg, color-mix(in srgb, var(--lo-cyan) 50%, transparent), color-mix(in srgb, var(--lo-cyan) 15%, transparent))`
+              : `linear-gradient(180deg, color-mix(in srgb, var(--lo-cyan) 35%, transparent), color-mix(in srgb, var(--lo-cyan) 8%, transparent))`,
           border: `1px solid color-mix(in srgb, var(--lo-cyan) 25%, transparent)`,
-          boxShadow: `0 0 24px color-mix(in srgb, var(--lo-cyan) 14%, transparent)`,
+          boxShadow: status === "busy"
+            ? `0 0 30px color-mix(in srgb, var(--lo-cyan) 25%, transparent)`
+            : `0 0 24px color-mix(in srgb, var(--lo-cyan) 14%, transparent)`,
+          transition: "background 0.5s ease, box-shadow 0.5s ease",
         }}
       />
 
