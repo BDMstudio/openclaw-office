@@ -28,12 +28,18 @@ export default defineConfig({
                 ws: true,
                 changeOrigin: true,
                 rewrite: () => gatewayPath,
+                configure: (proxy) => {
+                    proxy.on("error", () => { });
+                },
             },
             "/api/gateway/ws": {
                 target: gatewayTarget,
                 ws: true,
                 changeOrigin: true,
                 rewrite: () => gatewayPath,
+                configure: (proxy) => {
+                    proxy.on("error", () => { });
+                },
             },
         },
     },
