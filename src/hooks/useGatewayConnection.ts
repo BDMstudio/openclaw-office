@@ -81,7 +81,7 @@ export function useGatewayConnection({ url, token }: UseGatewayConnectionOptions
         const agentList = await adapter.agentsList() as AgentsListResponse;
         cacheAgentNames(agentList.agents);
         initAgents(agentList.agents);
-        setOperatorScopes(["operator.admin"]);
+        setOperatorScopes(["operator.admin", "operator.read"]);
         setConnectionStatus("connected");
       });
       return () => {
@@ -124,9 +124,8 @@ export function useGatewayConnection({ url, token }: UseGatewayConnectionOptions
       if (status === "connected") {
         initAgentsFromSnapshot(ws, initAgents);
         initProjectionFromSnapshot(ws);
-        const snapshot = ws.getSnapshot();
-        const scopes = (snapshot as Record<string, unknown>)?.scopes;
-        setOperatorScopes(Array.isArray(scopes) ? (scopes as string[]) : ["operator"]);
+        const authScopes = ws.getAuthInfo()?.scopes;
+        setOperatorScopes(Array.isArray(authScopes) ? authScopes : ["operator.admin", "operator.read"]);
 
         void initAdapter("ws", { wsClient: ws, rpcClient: rpc });
         void fetchGatewayConfig(rpc, setMaxSubAgents, setAgentToAgentConfig);

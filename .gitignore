@@ -29,4 +29,5 @@ coverage/
 .codex/skills/openclaw-office-release/
 
 #
-ClawX/
+docs/
+openspec/

@@ -34,6 +34,7 @@ export class GatewayWsClient {
 
   private snapshot: HelloOk["snapshot"] | null = null;
   private serverInfo: HelloOk["server"] | null = null;
+  private authInfo: HelloOk["auth"] | null = null;
   private handleClose: () => void = () => {};
 
   getStatus(): ConnectionStatus {
@@ -42,6 +43,10 @@ export class GatewayWsClient {
 
   getSnapshot(): HelloOk["snapshot"] | null {
     return this.snapshot;
+  }
+
+  getAuthInfo(): HelloOk["auth"] | null {
+    return this.authInfo;
   }
 
   getServerInfo(): HelloOk["server"] | null {
@@ -193,7 +198,7 @@ export class GatewayWsClient {
 
   private async sendConnect(nonce: string): Promise<void> {
     const role = "operator";
-    const scopes = ["operator.admin"];
+    const scopes = ["operator.admin", "operator.read"];
     const params: ConnectParams = {
       minProtocol: 3,
       maxProtocol: 3,
@@ -257,6 +262,7 @@ export class GatewayWsClient {
   private handleConnectSuccess(payload: HelloOk): void {
     this.snapshot = payload.snapshot ?? null;
     this.serverInfo = payload.server ?? null;
+    this.authInfo = payload.auth ?? null;
     this.reconnectAttempt = 0;
     this.setStatus("connected");
   }
