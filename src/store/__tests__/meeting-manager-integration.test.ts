@@ -17,7 +17,6 @@ function resetStore() {
     connectionStatus: "disconnected",
     connectionError: null,
     selectedAgentId: null,
-    viewMode: "2d",
     eventHistory: [],
     sidebarCollapsed: false,
     lastSessionsSnapshot: null,

@@ -2,6 +2,7 @@ import { act, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { __resetAdapterForTests, initAdapter } from "@/gateway/adapter-provider";
 import { useChatDockStore } from "@/store/console-stores/chat-dock-store";
+import { useOfficeStore } from "@/store/office-store";
 import { ChatPage } from "./ChatPage";
 
 vi.stubGlobal(
@@ -39,30 +40,60 @@ function resetChatStore() {
   });
 }
 
+function makeVisualAgent(id: string, name: string) {
+  return {
+    id,
+    name,
+    status: "idle" as const,
+    position: { x: 0, y: 0 },
+    currentTool: null,
+    speechBubble: null,
+    lastActiveAt: Date.now(),
+    toolCallCount: 0,
+    toolCallHistory: [],
+    runId: null,
+    isSubAgent: false,
+    isPlaceholder: false,
+    parentAgentId: null,
+    childAgentIds: [],
+    zone: "desk" as const,
+    originalPosition: null,
+    movement: null,
+    confirmed: true,
+    arrivedAtHotDeskAt: null,
+    pendingRetire: false,
+  };
+}
+
 describe("ChatPage", () => {
   beforeEach(async () => {
     __resetAdapterForTests();
     await initAdapter("mock");
     resetChatStore();
+    useOfficeStore.setState({
+      agents: new Map([["main", makeVisualAgent("main", "CEO")]]),
+    });
   });
 
-  it("filters transcript messages by search query", async () => {
+  it("renders the session sidebar and removes the top search bar", async () => {
     useChatDockStore.setState({
-      messages: [
-        { id: "1", role: "assistant", content: "alpha result", timestamp: 1 },
-        { id: "2", role: "assistant", content: "beta result", timestamp: 2 },
+      sessions: [
+        {
+          key: "agent:main:session-1",
+          label: "agent:main:session-1",
+          createdAt: 1,
+          lastActiveAt: Date.now(),
+          messageCount: 2,
+        },
       ],
     });
 
     await act(async () => {
       render(<ChatPage />);
     });
-    fireEvent.change(screen.getByPlaceholderText("搜索当前会话转录..."), {
-      target: { value: "beta" },
-    });
 
-    expect(screen.queryByText("alpha result")).not.toBeInTheDocument();
-    expect(screen.getByText("beta result")).toBeInTheDocument();
+    expect(screen.getByText("最近历史")).toBeInTheDocument();
+    expect(screen.queryByPlaceholderText("搜索当前会话转录...")).not.toBeInTheDocument();
   });
 
   it("shows slash command suggestions from the draft", async () => {
@@ -76,6 +107,31 @@ describe("ChatPage", () => {
     await waitFor(() => {
       expect(screen.getByText("/help")).toBeInTheDocument();
     });
+  });
+
+  it("loads available agents from gateway and switches the active target", async () => {
+    await act(async () => {
+      render(<ChatPage />);
+    });
+
+    const selector = await screen.findByRole("button", { name: /main|CEO/i });
+    fireEvent.click(selector);
+
+    const coderOption = await screen.findByRole("button", { name: /CodeClaw/i });
+    fireEvent.click(coderOption);
+
+    await waitFor(() => {
+      expect(useChatDockStore.getState().targetAgentId).toBe("coder");
+      expect(useChatDockStore.getState().currentSessionKey).toBe("agent:coder:main");
+    });
+  });
+
+  it("uses the office agent name for the main session title", async () => {
+    await act(async () => {
+      render(<ChatPage />);
+    });
+
+    expect(screen.getByRole("heading", { name: "CEO" })).toBeInTheDocument();
   });
 
   it("pins a message into the pinned strip", async () => {

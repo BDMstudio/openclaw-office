@@ -14,6 +14,8 @@ import type {
 import type { AgentSummary } from "@/gateway/types";
 import {
   extractAgentConfig,
+  normalizeAgentModelConfig,
+  patchAgentModelConfig,
   patchAgentToolsConfig,
   patchAgentSkillsConfig,
   type PatchResult,
@@ -340,8 +342,32 @@ export const useAgentsStore = create<AgentsStoreState>((set, get) => ({
     try {
       await waitForAdapter();
       const adapter = getAdapter();
-      const result = await adapter.agentsUpdate({ agentId, model });
+      const result = await patchAgentModelConfig(adapter, agentId, model);
       if (result.ok) {
+        const normalized = normalizeAgentModelConfig(model);
+        set((state) => {
+          const next = { ...state.agentModelConfigs };
+          if (typeof normalized === "string") {
+            next[agentId] = { primary: normalized, fallbacks: [] };
+          } else if (normalized) {
+            next[agentId] = {
+              primary: normalized.primary ?? "",
+              fallbacks: normalized.fallbacks ?? [],
+            };
+          } else {
+            delete next[agentId];
+          }
+          return { agentModelConfigs: next };
+        });
+
+        if (result.restart?.scheduled) {
+          useConfigStore.getState().setLifecycleFromWriteResult(
+            { ok: true, config: {}, restart: result.restart },
+            "save",
+          );
+          return true;
+        }
+
         let messageKey = "configLifecycle.runtimeAgentModel";
         try {
           const cleared = await clearAgentChannelSessions(adapter, agentId);
@@ -352,8 +378,9 @@ export const useAgentsStore = create<AgentsStoreState>((set, get) => ({
           // Keep the runtime-applied success state even if session cleanup fails.
         }
         useConfigStore.getState().setRuntimeApplied(messageKey);
+        return true;
       }
-      return result.ok;
+      return false;
     } catch {
       return false;
     }

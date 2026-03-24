@@ -23,8 +23,6 @@
   },
   "page": {
     "description": "独立的 Operator 对话工作区，支持会话上下文和实时转录更新。",
-    "search": "搜索",
-    "searchPlaceholder": "搜索当前会话转录...",
     "emptyTitle": "开始一段对话",
     "emptyDescription": "选择一个会话，或直接输入消息，与当前选中的 OpenClaw 智能体开始对话。",
     "export": "导出",
@@ -33,11 +31,23 @@
     "pinned": "已置顶",
     "addAttachment": "添加附件",
     "removeAttachment": "移除附件",
-    "clearAttachments": "清空附件"
+    "clearAttachments": "清空附件",
+    "sessionsTitle": "会话",
+    "sessionsDescription": "从这里新建对话，或返回最近的上下文继续交流。",
+    "sessionHistory": "最近历史",
+    "sessionEmpty": "还没有会话",
+    "newSessionPrimary": "新建会话",
+    "chatWith": "与 {{agent}} 对话",
+    "conversationTitle": "当前对话",
+    "conversationSubtitle": "在当前会话中查看实时转录、工具活动和更友好的 Markdown 回复。",
+    "sessionMeta": "{{time}} · {{detail}}",
+    "scrollToLatest": "跳到最新"
   },
   "message": {
+    "assistant": "助手",
     "pin": "置顶",
-    "pinned": "已置顶"
+    "pinned": "已置顶",
+    "you": "你"
   },
   "toolStatus": {
     "running": "执行中",

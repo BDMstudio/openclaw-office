@@ -1,6 +1,7 @@
 import "fake-indexeddb/auto";
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { LocalPersistence } from "../local-persistence";
+import type { SessionInfo } from "@/gateway/adapter-types";
 import type { ChatDockMessage } from "@/store/console-stores/chat-dock-store";
 import type { EventHistoryItem } from "@/gateway/types";
 
@@ -10,6 +11,17 @@ function makeMsg(id: string, ts: number, role: "user" | "assistant" = "user"): C
 
 function makeEvent(ts: number, agentId = "a1"): EventHistoryItem {
   return { timestamp: ts, agentId, agentName: agentId, stream: "lifecycle", summary: `event-${ts}` };
+}
+
+function makeSession(key: string, lastActiveAt: number): SessionInfo {
+  return {
+    key,
+    agentId: key.split(":")[1] || "main",
+    label: key,
+    createdAt: lastActiveAt - 1000,
+    lastActiveAt,
+    messageCount: 1,
+  };
 }
 
 describe("LocalPersistence", () => {
@@ -132,6 +144,24 @@ describe("LocalPersistence", () => {
       const result = await lp4.getEvents();
       expect(result.length).toBeLessThanOrEqual(3);
       lp4.close();
+    });
+  });
+
+  describe("sessions", () => {
+    it("saveSessions + getSessions round-trip", async () => {
+      await lp.saveSessions([makeSession("agent:main:main", 1000), makeSession("agent:coder:main", 2000)]);
+      const result = await lp.getSessions();
+      expect(result.sessions).toHaveLength(2);
+      expect(result.sessions[0]?.key).toBe("agent:coder:main");
+      expect(typeof result.cachedAt).toBe("number");
+    });
+
+    it("clearSessions removes cached session list", async () => {
+      await lp.saveSessions([makeSession("agent:main:main", 1000)]);
+      await lp.clearSessions();
+      const result = await lp.getSessions();
+      expect(result.sessions).toEqual([]);
+      expect(result.cachedAt).toBeNull();
     });
   });
 

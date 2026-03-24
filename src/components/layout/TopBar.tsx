@@ -35,13 +35,9 @@ export function TopBar({ isMobile = false }: TopBarProps) {
   const isOfficePage = currentPage === "office";
 
   return (
-    <header className="grid h-12 shrink-0 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-4 border-b border-gray-200 bg-white px-4 shadow-sm dark:border-gray-700 dark:bg-gray-900">
+    <header className="grid h-12 shrink-0 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-4 border-b border-gray-200/80 bg-white px-5 dark:border-gray-800 dark:bg-gray-900">
       <div className="min-w-0">
-        {isOfficePage ? (
-          <OfficeTopBarContent metrics={metrics} isMobile={isMobile} />
-        ) : (
-          <ConsoleTopBarContent currentPage={currentPage} />
-        )}
+        <BrandSection metrics={metrics} isOfficePage={isOfficePage} isMobile={isMobile} />
       </div>
       <TopNav currentPage={currentPage} />
       <div className="ml-auto flex items-center gap-3 justify-self-end">
@@ -57,53 +53,41 @@ export function TopBar({ isMobile = false }: TopBarProps) {
   );
 }
 
-function OfficeTopBarContent({
+function BrandSection({
   metrics,
+  isOfficePage,
   isMobile,
 }: {
   metrics: { activeAgents: number; totalAgents: number; totalTokens: number };
+  isOfficePage: boolean;
   isMobile?: boolean;
 }) {
   const { t } = useTranslation("layout");
 
   return (
     <div className="flex min-w-0 items-center gap-3">
-      <div className="flex min-w-0 items-center gap-3">
-        <h1 className="truncate text-lg font-semibold tracking-tight text-gray-800 dark:text-gray-100">
-          OpenClaw Office
-        </h1>
-        <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-500 dark:bg-gray-800 dark:text-gray-400">
-          v{APP_VERSION}
-        </span>
-      </div>
-      {!isMobile && (
-        <div className="ml-3 hidden items-center gap-6 text-sm text-gray-500 dark:text-gray-400 xl:flex">
+      <h1 className="truncate text-sm font-semibold tracking-tight text-gray-800 dark:text-gray-100">
+        OpenClaw Office
+      </h1>
+      <span className="rounded-full bg-gray-100 px-1.5 py-0.5 text-[10px] tabular-nums text-gray-400 dark:bg-gray-800 dark:text-gray-500">
+        v{APP_VERSION}
+      </span>
+      {isOfficePage && !isMobile && (
+        <div className="ml-2 hidden items-center gap-5 text-xs text-gray-400 dark:text-gray-500 xl:flex">
           <span>
             {t("topbar.activeCountText")}{" "}
-            <strong className="text-gray-800 dark:text-gray-200">
+            <strong className="text-gray-700 dark:text-gray-300">
               {metrics.activeAgents}/{metrics.totalAgents}
             </strong>
           </span>
           <span>
             {t("topbar.tokensLabel")}{" "}
-            <strong className="text-gray-800 dark:text-gray-200">
+            <strong className="text-gray-700 dark:text-gray-300">
               {formatTokens(metrics.totalTokens)}
             </strong>
           </span>
         </div>
       )}
-    </div>
-  );
-}
-
-function ConsoleTopBarContent({ currentPage }: { currentPage: PageId }) {
-  const { t } = useTranslation("layout");
-
-  return (
-    <div className="flex items-center gap-3">
-      <h1 className="truncate text-lg font-semibold text-gray-800 dark:text-gray-100">
-        {t(`topbar.pageTitles.${currentPage}`, { defaultValue: t("topbar.pageTitles.fallback") })}
-      </h1>
     </div>
   );
 }
@@ -115,41 +99,30 @@ function TopNav({ currentPage }: { currentPage: PageId }) {
   const isChatPage = currentPage === "chat";
   const isConsolePage = !isOfficePage && !isChatPage;
 
+  const items: { active: boolean; label: string; onClick: () => void }[] = [
+    { active: isOfficePage, label: t("topbar.office"), onClick: () => navigate("/") },
+    { active: isChatPage, label: t("topbar.chat"), onClick: () => navigate("/chat") },
+    { active: isConsolePage, label: t("topbar.console"), onClick: () => navigate("/dashboard") },
+  ];
+
   return (
-    <nav
-      aria-label={t("topbar.navigation")}
-      className="flex items-center rounded-lg border border-gray-200 bg-gray-50 p-1 dark:border-gray-700 dark:bg-gray-800"
-    >
-      <button
-        onClick={() => navigate("/")}
-        className={`rounded-md px-3 py-1 text-sm font-medium transition-colors ${
-          isOfficePage
-            ? "bg-white text-gray-900 shadow-sm dark:bg-gray-900 dark:text-gray-100"
-            : "text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
-        }`}
-      >
-        {t("topbar.office")}
-      </button>
-      <button
-        onClick={() => navigate("/chat")}
-        className={`rounded-md px-3 py-1 text-sm font-medium transition-colors ${
-          isChatPage
-            ? "bg-white text-gray-900 shadow-sm dark:bg-gray-900 dark:text-gray-100"
-            : "text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
-        }`}
-      >
-        {t("topbar.chat")}
-      </button>
-      <button
-        onClick={() => navigate("/dashboard")}
-        className={`rounded-md px-3 py-1 text-sm font-medium transition-colors ${
-          isConsolePage
-            ? "bg-white text-gray-900 shadow-sm dark:bg-gray-900 dark:text-gray-100"
-            : "text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
-        }`}
-      >
-        {t("topbar.console")}
-      </button>
+    <nav aria-label={t("topbar.navigation")} className="flex items-center gap-1">
+      {items.map((item) => (
+        <button
+          key={item.label}
+          onClick={item.onClick}
+          className={`relative px-4 py-1 text-sm font-medium transition-colors ${
+            item.active
+              ? "text-gray-900 dark:text-gray-100"
+              : "text-gray-400 hover:text-gray-700 dark:text-gray-500 dark:hover:text-gray-300"
+          }`}
+        >
+          {item.label}
+          {item.active && (
+            <span className="absolute inset-x-1 -bottom-[9px] h-0.5 rounded-full bg-gray-900 dark:bg-gray-100" />
+          )}
+        </button>
+      ))}
     </nav>
   );
 }

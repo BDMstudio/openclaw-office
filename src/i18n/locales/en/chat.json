@@ -23,8 +23,6 @@
   },
   "page": {
     "description": "A dedicated operator chat workspace with session context and live transcript updates.",
-    "search": "Search",
-    "searchPlaceholder": "Search the active transcript...",
     "emptyTitle": "Start a conversation",
     "emptyDescription": "Pick a session or type a message to begin chatting with the selected OpenClaw agent.",
     "export": "Export",
@@ -33,11 +31,23 @@
     "pinned": "Pinned",
     "addAttachment": "Add attachment",
     "removeAttachment": "Remove attachment",
-    "clearAttachments": "Clear attachments"
+    "clearAttachments": "Clear attachments",
+    "sessionsTitle": "Sessions",
+    "sessionsDescription": "Start a fresh thread or jump back into recent context.",
+    "sessionHistory": "Recent history",
+    "sessionEmpty": "No sessions yet",
+    "newSessionPrimary": "New session",
+    "chatWith": "Chat with {{agent}}",
+    "conversationTitle": "Conversation",
+    "conversationSubtitle": "Live transcript, tools, and markdown-rich responses for the active session.",
+    "sessionMeta": "{{time}} · {{detail}}",
+    "scrollToLatest": "Jump to latest"
   },
   "message": {
+    "assistant": "Assistant",
     "pin": "Pin",
-    "pinned": "Pinned"
+    "pinned": "Pinned",
+    "you": "You"
   },
   "toolStatus": {
     "running": "Running",

@@ -32,23 +32,26 @@ describe("TopBar navigation", () => {
     renderWithRouter();
     expect(screen.getByRole("button", { name: "办公室" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "对话" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "控制条" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "控制台" })).toBeInTheDocument();
   });
 
   it("highlights Office when current page is office", () => {
     renderWithRouter();
-    expect(screen.getByRole("button", { name: "办公室" }).className).toContain("shadow-sm");
+    const btn = screen.getByRole("button", { name: "办公室" });
+    expect(btn.className).toContain("text-gray-900");
   });
 
   it("highlights Console when current page is console", () => {
     useOfficeStore.setState({ currentPage: "dashboard" });
     renderWithRouter(["/dashboard"]);
-    expect(screen.getByRole("button", { name: "控制条" }).className).toContain("shadow-sm");
+    const btn = screen.getByRole("button", { name: "控制台" });
+    expect(btn.className).toContain("text-gray-900");
   });
 
   it("highlights Chat when current page is chat", () => {
     useOfficeStore.setState({ currentPage: "chat" });
     renderWithRouter(["/chat"]);
-    expect(screen.getByRole("button", { name: "对话" }).className).toContain("shadow-sm");
+    const btn = screen.getByRole("button", { name: "对话" });
+    expect(btn.className).toContain("text-gray-900");
   });
 });

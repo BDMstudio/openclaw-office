@@ -18,8 +18,10 @@ export function AppShell({ children, isMobile = false }: AppShellProps) {
   const { t } = useTranslation("layout");
   const sidebarCollapsed = useOfficeStore((s) => s.sidebarCollapsed);
   const setSidebarCollapsed = useOfficeStore((s) => s.setSidebarCollapsed);
+  const currentPage = useOfficeStore((s) => s.currentPage);
 
   const initEventHistory = useOfficeStore((s) => s.initEventHistory);
+  const hideSidebar = currentPage === "chat";
 
   useEffect(() => {
     if (isMobile) {
@@ -43,9 +45,9 @@ export function AppShell({ children, isMobile = false }: AppShellProps) {
         <main className="relative flex flex-1 flex-col overflow-hidden">
           <div className="relative flex-1 overflow-hidden">{content}</div>
           <ChatDialog />
-          <ChatDockBar />
+          {!hideSidebar && <ChatDockBar />}
         </main>
-        {isMobile ? (
+        {!hideSidebar && (isMobile ? (
           <>
             <button
               type="button"
@@ -73,7 +75,7 @@ export function AppShell({ children, isMobile = false }: AppShellProps) {
           </>
         ) : (
           <Sidebar />
-        )}
+        ))}
       </div>
     </div>
   );

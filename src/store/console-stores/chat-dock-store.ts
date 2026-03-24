@@ -91,6 +91,80 @@ function buildSessionKey(agentId: string): string {
   return `agent:${agentId}:main`;
 }
 
+const SESSION_LIST_CACHE_MAX_AGE_MS = 60_000;
+
+function inferAgentIdFromSessionKey(sessionKey: string): string | null {
+  const match = /^agent:([^:]+):/u.exec(sessionKey);
+  return match?.[1] ?? null;
+}
+
+function resolveSessionAgentId(sessionKey: string, sessions: SessionInfo[]): string | null {
+  const session = sessions.find((item) => item.key === sessionKey);
+  return session?.agentId ?? inferAgentIdFromSessionKey(sessionKey);
+}
+
+function selectPreferredSessionKey(agentId: string, sessions: SessionInfo[]): string {
+  const matched = sessions
+    .filter((session) => resolveSessionAgentId(session.key, sessions) === agentId)
+    .sort((a, b) => {
+      const aTime = a.lastActiveAt ?? a.updatedAt ?? a.createdAt ?? 0;
+      const bTime = b.lastActiveAt ?? b.updatedAt ?? b.createdAt ?? 0;
+      return bTime - aTime;
+    });
+  return matched[0]?.key ?? buildSessionKey(agentId);
+}
+
+function mergeCurrentSession(
+  sessions: SessionInfo[],
+  currentSessionKey: string,
+  targetAgentId: string | null,
+): SessionInfo[] {
+  if (sessions.some((session) => session.key === currentSessionKey)) {
+    return sessions;
+  }
+
+  const now = Date.now();
+  return [
+    normalizeSession({
+      key: currentSessionKey,
+      agentId: targetAgentId ?? inferAgentIdFromSessionKey(currentSessionKey) ?? undefined,
+      label: currentSessionKey,
+      createdAt: now,
+      lastActiveAt: now,
+      messageCount: 0,
+    }),
+    ...sessions,
+  ];
+}
+
+function touchSession(
+  sessions: SessionInfo[],
+  currentSessionKey: string,
+  targetAgentId: string | null,
+  messageCount: number,
+): SessionInfo[] {
+  const now = Date.now();
+  const existing = sessions.find((session) => session.key === currentSessionKey);
+  const nextSession = normalizeSession({
+    ...existing,
+    key: currentSessionKey,
+    agentId: targetAgentId ?? existing?.agentId ?? inferAgentIdFromSessionKey(currentSessionKey) ?? undefined,
+    label: existing?.label ?? currentSessionKey,
+    createdAt: existing?.createdAt ?? now,
+    lastActiveAt: now,
+    updatedAt: now,
+    messageCount,
+  });
+  return [
+    nextSession,
+    ...sessions.filter((session) => session.key !== currentSessionKey),
+  ];
+}
+
+function persistSessions(sessions: SessionInfo[]): void {
+  void localPersistence.saveSessions(sessions);
+}
+
 function extractText(content: unknown): string {
   if (typeof content === "string") return content;
   if (Array.isArray(content)) {
@@ -440,8 +514,16 @@ export const useChatDockStore = create<ChatDockState>((set, get) => ({
       attachments: outboundAttachments.length > 0 ? outboundAttachments : undefined,
     };
 
+    const nextSessions = touchSession(
+      get().sessions,
+      currentSessionKey,
+      get().targetAgentId,
+      get().messages.length + 1,
+    );
+
     set((state) => ({
       messages: [...state.messages, userMsg],
+      sessions: nextSessions,
       isStreaming: true,
       dockExpanded: true,
       error: null,
@@ -451,6 +533,7 @@ export const useChatDockStore = create<ChatDockState>((set, get) => ({
     }));
 
     localPersistence.saveMessage(currentSessionKey, userMsg).catch(() => {});
+    persistSessions(nextSessions);
 
     try {
       await withAdapter((adapter) =>
@@ -491,8 +574,10 @@ export const useChatDockStore = create<ChatDockState>((set, get) => ({
   },
 
   switchSession: (key) => {
+    const targetAgentId = resolveSessionAgentId(key, get().sessions);
     set({
       currentSessionKey: key,
+      targetAgentId,
       messages: [],
       streamingMessage: null,
       activeRunId: null,
@@ -509,6 +594,17 @@ export const useChatDockStore = create<ChatDockState>((set, get) => ({
   newSession: (agentId) => {
     const resolvedAgentId = agentId ?? get().targetAgentId ?? "main";
     const newKey = `agent:${resolvedAgentId}:session-${Date.now()}`;
+    const sessions = [
+      {
+        key: newKey,
+        agentId: resolvedAgentId,
+        label: newKey,
+        createdAt: Date.now(),
+        lastActiveAt: Date.now(),
+        messageCount: 0,
+      },
+      ...get().sessions.filter((session) => session.key !== newKey),
+    ].map(normalizeSession);
     set({
       currentSessionKey: newKey,
       targetAgentId: resolvedAgentId,
@@ -523,25 +619,30 @@ export const useChatDockStore = create<ChatDockState>((set, get) => ({
       attachments: [],
       queue: [],
       thinkingLevel: null,
-      sessions: [
-        {
-          key: newKey,
-          agentId: resolvedAgentId,
-          label: newKey,
-          createdAt: Date.now(),
-          lastActiveAt: Date.now(),
-          messageCount: 0,
-        },
-        ...get().sessions.filter((session) => session.key !== newKey),
-      ],
+      sessions,
     });
     void localPersistence.clearMessages(newKey);
+    persistSessions(sessions);
   },
 
   loadSessions: async () => {
+    const current = get();
+    const cached = await localPersistence.getSessions();
+    if (cached.sessions.length > 0) {
+      set({
+        sessions: mergeCurrentSession(cached.sessions.map(normalizeSession), current.currentSessionKey, current.targetAgentId),
+      });
+      if (cached.cachedAt && Date.now() - cached.cachedAt < SESSION_LIST_CACHE_MAX_AGE_MS) {
+        return;
+      }
+    }
+
     try {
       const result = await withAdapter((adapter) => adapter.sessionsList());
-      set({ sessions: result.map(normalizeSession) });
+      const normalized = result.map(normalizeSession);
+      const merged = mergeCurrentSession(normalized, get().currentSessionKey, get().targetAgentId);
+      set({ sessions: merged });
+      persistSessions(merged);
     } catch {
       // Sessions are optional for basic chat usage.
     }
@@ -554,8 +655,10 @@ export const useChatDockStore = create<ChatDockState>((set, get) => ({
       const messages = result.messages.map((message) =>
         normalizeHistoryMessage(message as unknown as Record<string, unknown>),
       );
-      set({ messages, thinkingLevel: result.thinkingLevel ?? null });
+      const nextSessions = touchSession(get().sessions, currentSessionKey, get().targetAgentId, messages.length);
+      set({ messages, thinkingLevel: result.thinkingLevel ?? null, sessions: nextSessions });
       await localPersistence.saveMessages(currentSessionKey, messages);
+      persistSessions(nextSessions);
     } catch {
       set({ messages: [] });
     }
@@ -571,13 +674,16 @@ export const useChatDockStore = create<ChatDockState>((set, get) => ({
       const messages = result.messages.map((message) =>
         normalizeHistoryMessage(message as unknown as Record<string, unknown>),
       );
+      const nextSessions = touchSession(get().sessions, currentSessionKey, get().targetAgentId, messages.length);
       set({
         messages,
+        sessions: nextSessions,
         isHistoryLoaded: true,
         isHistoryLoading: false,
         thinkingLevel: result.thinkingLevel ?? null,
       });
       await localPersistence.saveMessages(currentSessionKey, messages);
+      persistSessions(nextSessions);
     } catch {
       try {
         const cached = await localPersistence.getMessages(currentSessionKey);
@@ -589,7 +695,7 @@ export const useChatDockStore = create<ChatDockState>((set, get) => ({
   },
 
   setTargetAgent: (agentId) => {
-    const sessionKey = buildSessionKey(agentId);
+    const sessionKey = selectPreferredSessionKey(agentId, get().sessions);
     set({
       targetAgentId: agentId,
       currentSessionKey: sessionKey,
@@ -652,14 +758,22 @@ export const useChatDockStore = create<ChatDockState>((set, get) => ({
             runId: runId || null,
             aborted: Boolean(message?.aborted),
           };
+          const nextSessions = touchSession(
+            get().sessions,
+            get().currentSessionKey,
+            get().targetAgentId,
+            get().messages.length + 1,
+          );
           set((state) => ({
             messages: [...state.messages, assistantMsg],
+            sessions: nextSessions,
             isStreaming: false,
             streamingMessage: null,
             activeRunId: null,
           }));
           const { currentSessionKey } = get();
           localPersistence.saveMessage(currentSessionKey, assistantMsg).catch(() => {});
+          persistSessions(nextSessions);
         } else {
           set({
             isStreaming: false,

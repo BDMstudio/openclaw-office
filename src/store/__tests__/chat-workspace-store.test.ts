@@ -1,5 +1,6 @@
-import { beforeEach, describe, expect, it } from "vitest";
-import { __resetAdapterForTests, initAdapter } from "@/gateway/adapter-provider";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { __resetAdapterForTests, getAdapter, initAdapter } from "@/gateway/adapter-provider";
+import { localPersistence } from "@/lib/local-persistence";
 import { useChatDockStore } from "../console-stores/chat-dock-store";
 
 function resetChatStore() {
@@ -29,6 +30,7 @@ describe("Chat workspace store", () => {
   beforeEach(async () => {
     __resetAdapterForTests();
     await initAdapter("mock");
+    vi.restoreAllMocks();
     resetChatStore();
   });
 
@@ -45,6 +47,78 @@ describe("Chat workspace store", () => {
     const state = useChatDockStore.getState();
     expect(state.currentSessionKey).toContain("agent:main:session-");
     expect(state.sessions[0]?.key).toBe(state.currentSessionKey);
+  });
+
+  it("switches target agent when selecting a different session", () => {
+    useChatDockStore.setState({
+      sessions: [
+        {
+          key: "agent:coder:session-1",
+          agentId: "coder",
+          label: "coder",
+          createdAt: 1,
+          lastActiveAt: 2,
+          messageCount: 3,
+        },
+      ],
+    });
+
+    useChatDockStore.getState().switchSession("agent:coder:session-1");
+
+    const state = useChatDockStore.getState();
+    expect(state.currentSessionKey).toBe("agent:coder:session-1");
+    expect(state.targetAgentId).toBe("coder");
+  });
+
+  it("prefers an existing gateway session when changing the target agent", () => {
+    useChatDockStore.setState({
+      sessions: [
+        {
+          key: "agent:coder:session-old",
+          agentId: "coder",
+          label: "old",
+          createdAt: 1,
+          lastActiveAt: 10,
+          messageCount: 2,
+        },
+        {
+          key: "agent:coder:session-new",
+          agentId: "coder",
+          label: "new",
+          createdAt: 2,
+          lastActiveAt: 20,
+          messageCount: 5,
+        },
+      ],
+    });
+
+    useChatDockStore.getState().setTargetAgent("coder");
+
+    const state = useChatDockStore.getState();
+    expect(state.targetAgentId).toBe("coder");
+    expect(state.currentSessionKey).toBe("agent:coder:session-new");
+  });
+
+  it("uses cached session history before hitting gateway", async () => {
+    vi.spyOn(localPersistence, "getSessions").mockResolvedValue({
+      sessions: [
+        {
+          key: "agent:main:main",
+          agentId: "main",
+          label: "cached",
+          createdAt: 1,
+          lastActiveAt: Date.now(),
+          messageCount: 7,
+        },
+      ],
+      cachedAt: Date.now(),
+    });
+    const sessionsListSpy = vi.spyOn(getAdapter(), "sessionsList");
+
+    await useChatDockStore.getState().loadSessions();
+
+    expect(sessionsListSpy).not.toHaveBeenCalled();
+    expect(useChatDockStore.getState().sessions[0]?.label).toBe("cached");
   });
 
   it("queues outbound messages while streaming", async () => {

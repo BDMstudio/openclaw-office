@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { initAdapter } from "@/gateway/adapter-provider";
+import { getAdapter, initAdapter } from "@/gateway/adapter-provider";
 import { useConfigStore } from "../console-stores/config-store";
 import { useAgentsStore } from "../console-stores/agents-store";
 
@@ -120,6 +120,23 @@ describe("Agents Store", () => {
     expect(useConfigStore.getState().lifecycleState?.messageKey).toBe(
       "configLifecycle.runtimeAgentModelSessionsReset",
     );
+  });
+
+  it("updateAgentModel() persists fallback model objects via config writes", async () => {
+    const ok = await useAgentsStore.getState().updateAgentModel("main", {
+      primary: "openai/o3",
+      fallbacks: ["anthropic/claude-opus-4-20250514"],
+    });
+
+    expect(ok).toBe(true);
+
+    const snapshot = await getAdapter().configGet();
+    const agents = (snapshot.config.agents as { list?: Array<Record<string, unknown>> }).list ?? [];
+    const main = agents.find((entry) => entry.id === "main");
+    expect(main?.model).toEqual({
+      primary: "openai/o3",
+      fallbacks: ["anthropic/claude-opus-4-20250514"],
+    });
   });
 
   it("dialog state management", () => {
