@@ -1,6 +1,5 @@
 import { useState, useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { useNavigate, useLocation } from "react-router-dom";
 import { AgentDetailPanel } from "@/components/panels/AgentDetailPanel";
 import { EventTimeline } from "@/components/panels/EventTimeline";
 import { MetricsPanel } from "@/components/panels/MetricsPanel";
@@ -85,16 +84,13 @@ export function Sidebar() {
         <span className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
           {t("sidebar.agents")}
         </span>
-        <div className="flex items-center gap-2">
-          <LivingOfficeLink />
-          <button
-            onClick={() => setSidebarCollapsed(true)}
-            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
-            title={t("sidebar.collapse")}
-          >
-            ▶
-          </button>
-        </div>
+        <button
+          onClick={() => setSidebarCollapsed(true)}
+          className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+          title={t("sidebar.collapse")}
+        >
+          ▶
+        </button>
       </div>
 
       {/* Metrics section — collapsed by default */}
@@ -252,30 +248,6 @@ function AgentSearchBadge({
     <span className="rounded bg-blue-100 px-1 text-[9px] text-blue-700 dark:bg-blue-900/50 dark:text-blue-300">
       {label}
     </span>
-  );
-}
-
-function LivingOfficeLink() {
-  const { t } = useTranslation("layout");
-  const navigate = useNavigate();
-  const location = useLocation();
-  const isActive = location.pathname === "/living-office";
-
-  return (
-    <button
-      onClick={() => navigate(isActive ? "/" : "/living-office")}
-      className={`flex items-center gap-1 rounded px-1.5 py-0.5 text-[9px] font-semibold transition-colors ${
-        isActive
-          ? "bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300"
-          : "text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-300"
-      }`}
-      title={t("sidebar.livingOffice")}
-    >
-      {t("sidebar.livingOffice")}
-      <span className="rounded bg-violet-500/20 px-1 text-[8px] text-violet-500 dark:text-violet-400">
-        {t("sidebar.livingOfficeBeta")}
-      </span>
-    </button>
   );
 }
 

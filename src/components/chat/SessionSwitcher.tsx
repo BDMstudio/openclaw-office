@@ -14,15 +14,15 @@ function formatSessionName(key: string): string {
   return key.length > 15 ? key.slice(0, 15) + "…" : key;
 }
 
-function formatRelativeTime(ts: number): string {
+function formatRelativeTime(ts: number, t: (key: string, options?: Record<string, unknown>) => string): string {
   const diff = Date.now() - ts;
   const mins = Math.floor(diff / 60_000);
-  if (mins < 1) return "just now";
-  if (mins < 60) return `${mins}m`;
+  if (mins < 1) return t("sessionSwitcher.relativeNow");
+  if (mins < 60) return t("sessionSwitcher.relativeMinutes", { count: mins });
   const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours}h`;
+  if (hours < 24) return t("sessionSwitcher.relativeHours", { count: hours });
   const days = Math.floor(hours / 24);
-  return `${days}d`;
+  return t("sessionSwitcher.relativeDays", { count: days });
 }
 
 export function SessionSwitcher() {
@@ -85,7 +85,9 @@ export function SessionSwitcher() {
   }, [newSession]);
 
   const displayName = formatSessionName(currentSessionKey);
-  const sortedSessions = [...(sessions ?? [])].sort((a, b) => b.lastActiveAt - a.lastActiveAt);
+  const sortedSessions = [...(sessions ?? [])].sort(
+    (a, b) => (b.lastActiveAt ?? 0) - (a.lastActiveAt ?? 0),
+  );
 
   return (
     <div className="flex items-center gap-1">
@@ -118,8 +120,9 @@ export function SessionSwitcher() {
                   <div className="min-w-0 flex-1">
                     <div className="truncate font-medium">{formatSessionName(session.key)}</div>
                     <div className="truncate text-[10px] text-gray-400">
-                      {formatRelativeTime(session.lastActiveAt)}
-                      {session.messageCount > 0 && ` · ${session.messageCount} msgs`}
+                      {formatRelativeTime(session.lastActiveAt ?? Date.now(), t)}
+                      {(session.messageCount ?? 0) > 0 &&
+                        ` · ${t("sessionSwitcher.messageCount", { count: session.messageCount ?? 0 })}`}
                     </div>
                   </div>
                   {session.key === currentSessionKey && (

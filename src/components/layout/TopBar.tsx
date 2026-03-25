@@ -1,10 +1,7 @@
-import { LayoutDashboard, ArrowLeft } from "lucide-react";
-import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { LanguageSwitcher } from "@/components/shared/LanguageSwitcher";
-import type { ConnectionStatus, ThemeMode, ViewMode, PageId } from "@/gateway/types";
-import { isWebGLAvailable } from "@/lib/webgl-detect";
+import type { ConnectionStatus, ThemeMode, PageId } from "@/gateway/types";
 import { useOfficeStore } from "@/store/office-store";
 
 const APP_VERSION = typeof __APP_VERSION__ === "string" ? __APP_VERSION__ : "dev";
@@ -30,32 +27,20 @@ export function TopBar({ isMobile = false }: TopBarProps) {
   const connectionStatus = useOfficeStore((s) => s.connectionStatus);
   const connectionError = useOfficeStore((s) => s.connectionError);
   const metrics = useOfficeStore((s) => s.globalMetrics);
-  const viewMode = useOfficeStore((s) => s.viewMode);
-  const setViewMode = useOfficeStore((s) => s.setViewMode);
   const theme = useOfficeStore((s) => s.theme);
   const setTheme = useOfficeStore((s) => s.setTheme);
   const currentPage = useOfficeStore((s) => s.currentPage);
 
-  const webglAvailable = useMemo(() => isWebGLAvailable(), []);
   const statusCfg = getStatusConfig(t)[connectionStatus];
   const isOfficePage = currentPage === "office";
 
   return (
-    <header className="flex h-12 shrink-0 items-center border-b border-gray-200 bg-white px-4 shadow-sm dark:border-gray-700 dark:bg-gray-900">
-      {isOfficePage ? (
-        <OfficeTopBarContent
-          viewMode={viewMode}
-          setViewMode={setViewMode}
-          metrics={metrics}
-          webglAvailable={webglAvailable}
-          isMobile={isMobile}
-        />
-      ) : (
-        <ConsoleTopBarContent currentPage={currentPage} />
-      )}
-
-      <div className="ml-auto flex items-center gap-3">
-        <ConsoleMenu currentPage={currentPage} />
+    <header className="grid h-12 shrink-0 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-4 border-b border-gray-200/80 bg-white px-5 dark:border-gray-800 dark:bg-gray-900">
+      <div className="min-w-0">
+        <BrandSection metrics={metrics} isOfficePage={isOfficePage} isMobile={isMobile} />
+      </div>
+      <TopNav currentPage={currentPage} />
+      <div className="ml-auto flex items-center gap-3 justify-self-end">
         <ThemeToggle theme={theme} setTheme={setTheme} />
         <LanguageSwitcher />
         <ConnectionIndicator
@@ -68,96 +53,77 @@ export function TopBar({ isMobile = false }: TopBarProps) {
   );
 }
 
-function OfficeTopBarContent({
-  viewMode,
-  setViewMode,
+function BrandSection({
   metrics,
-  webglAvailable,
+  isOfficePage,
   isMobile,
 }: {
-  viewMode: ViewMode;
-  setViewMode: (mode: ViewMode) => void;
   metrics: { activeAgents: number; totalAgents: number; totalTokens: number };
-  webglAvailable: boolean;
+  isOfficePage: boolean;
   isMobile?: boolean;
 }) {
   const { t } = useTranslation("layout");
-  return (
-    <>
-      <div className="flex items-center gap-3">
-        <h1 className="text-lg font-semibold tracking-tight text-gray-800 dark:text-gray-100">
-          OpenClaw Office
-        </h1>
-        <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-500 dark:bg-gray-800 dark:text-gray-400">
-          v{APP_VERSION}
-        </span>
-      </div>
-      <ViewModeSwitch
-        viewMode={viewMode}
-        setViewMode={setViewMode}
-        webglAvailable={webglAvailable}
-        isMobile={isMobile}
-      />
-      <div className="mx-8 flex items-center gap-6 text-sm text-gray-500 dark:text-gray-400">
-        <span>
-          {t("topbar.activeCountText")}{" "}
-          <strong className="text-gray-800 dark:text-gray-200">
-            {metrics.activeAgents}/{metrics.totalAgents}
-          </strong>
-        </span>
-        <span>
-          {t("topbar.tokensLabel")}{" "}
-          <strong className="text-gray-800 dark:text-gray-200">
-            {formatTokens(metrics.totalTokens)}
-          </strong>
-        </span>
-      </div>
-    </>
-  );
-}
 
-function ConsoleTopBarContent({ currentPage }: { currentPage: PageId }) {
-  const { t } = useTranslation("layout");
   return (
-    <div className="flex items-center gap-3">
-      <h1 className="text-lg font-semibold text-gray-800 dark:text-gray-100">
-        {t(`topbar.pageTitles.${currentPage}`, { defaultValue: t("topbar.pageTitles.fallback") })}
+    <div className="flex min-w-0 items-center gap-3">
+      <h1 className="truncate text-sm font-semibold tracking-tight text-gray-800 dark:text-gray-100">
+        OpenClaw Office
       </h1>
+      <span className="rounded-full bg-gray-100 px-1.5 py-0.5 text-[10px] tabular-nums text-gray-400 dark:bg-gray-800 dark:text-gray-500">
+        v{APP_VERSION}
+      </span>
+      {isOfficePage && !isMobile && (
+        <div className="ml-2 hidden items-center gap-5 text-xs text-gray-400 dark:text-gray-500 xl:flex">
+          <span>
+            {t("topbar.activeCountText")}{" "}
+            <strong className="text-gray-700 dark:text-gray-300">
+              {metrics.activeAgents}/{metrics.totalAgents}
+            </strong>
+          </span>
+          <span>
+            {t("topbar.tokensLabel")}{" "}
+            <strong className="text-gray-700 dark:text-gray-300">
+              {formatTokens(metrics.totalTokens)}
+            </strong>
+          </span>
+        </div>
+      )}
     </div>
   );
 }
 
-function ConsoleMenu({ currentPage }: { currentPage: PageId }) {
+function TopNav({ currentPage }: { currentPage: PageId }) {
   const { t } = useTranslation("layout");
   const navigate = useNavigate();
-  const location = useLocation();
-  const isInConsole = currentPage !== "office";
-  const isLivingOffice = location.pathname === "/living-office";
+  const isOfficePage = currentPage === "office";
+  const isChatPage = currentPage === "chat";
+  const isConsolePage = !isOfficePage && !isChatPage;
+
+  const items: { active: boolean; label: string; onClick: () => void }[] = [
+    { active: isOfficePage, label: t("topbar.office"), onClick: () => navigate("/") },
+    { active: isChatPage, label: t("topbar.chat"), onClick: () => navigate("/chat") },
+    { active: isConsolePage, label: t("topbar.console"), onClick: () => navigate("/dashboard") },
+  ];
 
   return (
-    <div className="flex items-center gap-1">
-      {/* Living Office 入口暂时隐藏，路由 /living-office 仍可直接访问 */}
-      <button
-        onClick={() => navigate(isInConsole ? (isLivingOffice ? "/living-office" : "/") : "/dashboard")}
-        className={`flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm font-medium transition-colors ${
-          isInConsole
-            ? "bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400"
-            : "text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800"
-        }`}
-      >
-        {isInConsole ? (
-          <>
-            <ArrowLeft className="h-4 w-4" />
-            <span className="hidden sm:inline">{t("topbar.office")}</span>
-          </>
-        ) : (
-          <>
-            <LayoutDashboard className="h-4 w-4" />
-            <span className="hidden sm:inline">{t("topbar.console")}</span>
-          </>
-        )}
-      </button>
-    </div>
+    <nav aria-label={t("topbar.navigation")} className="flex items-center gap-1">
+      {items.map((item) => (
+        <button
+          key={item.label}
+          onClick={item.onClick}
+          className={`relative px-4 py-1 text-sm font-medium transition-colors ${
+            item.active
+              ? "text-gray-900 dark:text-gray-100"
+              : "text-gray-400 hover:text-gray-700 dark:text-gray-500 dark:hover:text-gray-300"
+          }`}
+        >
+          {item.label}
+          {item.active && (
+            <span className="absolute inset-x-1 -bottom-[9px] h-0.5 rounded-full bg-gray-900 dark:bg-gray-100" />
+          )}
+        </button>
+      ))}
+    </nav>
   );
 }
 
@@ -186,57 +152,9 @@ function ConnectionIndicator({
   );
 }
 
-function ViewModeSwitch({
-  viewMode,
-  setViewMode,
-  webglAvailable,
-  isMobile,
-}: {
-  viewMode: ViewMode;
-  setViewMode: (mode: ViewMode) => void;
-  webglAvailable: boolean;
-  isMobile?: boolean;
-}) {
-  const { t } = useTranslation("layout");
-  const modes: { key: ViewMode; label: string }[] = [
-    { key: "2d", label: "2D" },
-    { key: "3d", label: "3D" },
-  ];
-
-  return (
-    <div className="ml-6 flex items-center rounded-md bg-gray-100 p-0.5 dark:bg-gray-800">
-      {modes.map(({ key, label }) => {
-        const isActive = viewMode === key;
-        const disabled = key === "3d" && (!webglAvailable || isMobile);
-        const title = disabled
-          ? isMobile
-            ? t("topbar.viewMode.mobileNotSupported")
-            : t("topbar.viewMode.webglNotSupported")
-          : t("topbar.viewMode.switchTo", { mode: label });
-        return (
-          <button
-            key={key}
-            onClick={() => !disabled && setViewMode(key)}
-            disabled={disabled}
-            title={title}
-            className={`rounded px-3 py-1 text-xs font-medium transition-colors ${
-              isActive
-                ? "bg-blue-600 text-white shadow-sm"
-                : disabled
-                  ? "cursor-not-allowed text-gray-300 dark:text-gray-600"
-                  : "text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200"
-            }`}
-          >
-            {label}
-          </button>
-        );
-      })}
-    </div>
-  );
-}
-
 function ThemeToggle({ theme, setTheme }: { theme: ThemeMode; setTheme: (t: ThemeMode) => void }) {
   const { t } = useTranslation("layout");
+
   return (
     <button
       onClick={() => setTheme(theme === "light" ? "dark" : "light")}

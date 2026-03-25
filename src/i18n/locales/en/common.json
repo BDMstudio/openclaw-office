@@ -20,6 +20,7 @@
     "confirm": "Confirm",
     "stop": "Stop",
     "retry": "Retry",
+    "dismiss": "Dismiss",
     "save": "Save",
     "delete": "Delete",
     "refresh": "Refresh",
@@ -33,6 +34,9 @@
     "hoursAgo": "{{count}}h ago",
     "running": "running {{seconds}}s",
     "runningMinutes": "running {{minutes}}m {{seconds}}s"
+  },
+  "format": {
+    "viaValue": " via {{value}}"
   },
   "empty": {
     "noData": "No data",

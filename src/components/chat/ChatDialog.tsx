@@ -52,21 +52,26 @@ export function ChatDialog() {
   const abort = useChatDockStore((s) => s.abort);
   const error = useChatDockStore((s) => s.error);
   const clearError = useChatDockStore((s) => s.clearError);
+  const draft = useChatDockStore((s) => s.draft);
+  const setDraft = useChatDockStore((s) => s.setDraft);
+  const attachments = useChatDockStore((s) => s.attachments);
+  const addAttachment = useChatDockStore((s) => s.addAttachment);
+  const clearAttachments = useChatDockStore((s) => s.clearAttachments);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [autoScroll, setAutoScroll] = useState(true);
   const [height, setHeight] = useState(getStoredHeight);
   const [isDragging, setIsDragging] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
-  const [input, setInput] = useState("");
   const [isComposing, setIsComposing] = useState(false);
   const dragStartY = useRef(0);
   const dragStartHeight = useRef(0);
   const prevExpanded = useRef(false);
 
   const streamingText = extractStreamingText(streamingMessage);
-  const canSend = input.trim().length > 0 && !isStreaming;
+  const canSend = (draft.trim().length > 0 || attachments.length > 0) && !isStreaming;
 
   // Slide animation on expand/collapse
   useEffect(() => {
@@ -176,11 +181,26 @@ export function ChatDialog() {
   }, [height, isDragging]);
 
   const handleSend = useCallback(() => {
-    const text = input.trim();
-    if (!text || isStreaming) return;
-    sendMessage(text);
-    setInput("");
-  }, [input, isStreaming, sendMessage]);
+    if ((!draft.trim() && attachments.length === 0) || isStreaming) return;
+    void sendMessage(draft, attachments);
+  }, [attachments, draft, isStreaming, sendMessage]);
+
+  const handleAttachmentChange = useCallback(
+    async (event: React.ChangeEvent<HTMLInputElement>) => {
+      const files = Array.from(event.target.files ?? []);
+      for (const file of files) {
+        const dataUrl = await readFileAsDataUrl(file);
+        addAttachment({
+          id: `${file.name}-${file.lastModified}`,
+          name: file.name,
+          mimeType: file.type || "application/octet-stream",
+          dataUrl,
+        });
+      }
+      event.target.value = "";
+    },
+    [addAttachment],
+  );
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -301,19 +321,47 @@ export function ChatDialog() {
 
       {/* Input area — pinned to bottom */}
       <div className="shrink-0 border-t border-gray-200 bg-white px-3 py-2 dark:border-gray-700 dark:bg-gray-900">
+        {attachments.length > 0 && (
+          <div className="mb-2 flex flex-wrap items-center gap-2">
+            {attachments.map((attachment) => (
+              <span
+                key={attachment.id}
+                className="rounded-full bg-gray-100 px-2 py-1 text-[11px] text-gray-500 dark:bg-gray-800 dark:text-gray-300"
+              >
+                {attachment.name ?? attachment.mimeType}
+              </span>
+            ))}
+            <button
+              type="button"
+              onClick={clearAttachments}
+              className="text-[11px] font-medium text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+            >
+              {t("page.clearAttachments")}
+            </button>
+          </div>
+        )}
         <div className="flex items-end gap-2">
           <AgentSelector />
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            multiple
+            onChange={handleAttachmentChange}
+            className="hidden"
+          />
           <button
             type="button"
             className="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-300"
-            title={t("dock.attachmentWip")}
+            title={t("page.addAttachment")}
+            onClick={() => fileInputRef.current?.click()}
           >
             <Paperclip className="h-4 w-4" />
           </button>
           <TextareaAutosize
             ref={textareaRef}
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
             onKeyDown={handleKeyDown}
             onCompositionStart={() => setIsComposing(true)}
             onCompositionEnd={() => setIsComposing(false)}
@@ -349,4 +397,13 @@ export function ChatDialog() {
       </div>
     </div>
   );
+}
+
+async function readFileAsDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result ?? ""));
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(file);
+  });
 }

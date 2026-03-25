@@ -1,5 +1,5 @@
 import { Maximize2, Send, Square, Paperclip } from "lucide-react";
-import { useState, useRef, useCallback } from "react";
+import { useRef, useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 import TextareaAutosize from "react-textarea-autosize";
 import { useChatDockStore } from "@/store/console-stores/chat-dock-store";
@@ -7,9 +7,9 @@ import { AgentSelector } from "./AgentSelector";
 
 export function ChatDockBar() {
   const { t } = useTranslation("chat");
-  const [input, setInput] = useState("");
   const [isComposing, setIsComposing] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const sendMessage = useChatDockStore((s) => s.sendMessage);
   const abort = useChatDockStore((s) => s.abort);
@@ -18,15 +18,35 @@ export function ChatDockBar() {
   const setDockExpanded = useChatDockStore((s) => s.setDockExpanded);
   const error = useChatDockStore((s) => s.error);
   const clearError = useChatDockStore((s) => s.clearError);
+  const draft = useChatDockStore((s) => s.draft);
+  const setDraft = useChatDockStore((s) => s.setDraft);
+  const attachments = useChatDockStore((s) => s.attachments);
+  const addAttachment = useChatDockStore((s) => s.addAttachment);
+  const clearAttachments = useChatDockStore((s) => s.clearAttachments);
 
-  const canSend = input.trim().length > 0 && !isStreaming;
+  const canSend = (draft.trim().length > 0 || attachments.length > 0) && !isStreaming;
 
   const handleSend = useCallback(() => {
-    const text = input.trim();
-    if (!text || isStreaming) return;
-    sendMessage(text);
-    setInput("");
-  }, [input, isStreaming, sendMessage]);
+    if ((!draft.trim() && attachments.length === 0) || isStreaming) return;
+    void sendMessage(draft, attachments);
+  }, [attachments, draft, isStreaming, sendMessage]);
+
+  const handleAttachmentChange = useCallback(
+    async (event: React.ChangeEvent<HTMLInputElement>) => {
+      const files = Array.from(event.target.files ?? []);
+      for (const file of files) {
+        const dataUrl = await readFileAsDataUrl(file);
+        addAttachment({
+          id: `${file.name}-${file.lastModified}`,
+          name: file.name,
+          mimeType: file.type || "application/octet-stream",
+          dataUrl,
+        });
+      }
+      event.target.value = "";
+    },
+    [addAttachment],
+  );
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -73,13 +93,19 @@ export function ChatDockBar() {
         </div>
 
         {/* Attachment button */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          multiple
+          onChange={handleAttachmentChange}
+          className="hidden"
+        />
         <button
           type="button"
           className="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-300"
-          title={t("dock.attachmentWip")}
-          onClick={() => {
-            // Phase B: UI placeholder only
-          }}
+          title={t("page.addAttachment")}
+          onClick={() => fileInputRef.current?.click()}
         >
           <Paperclip className="h-4 w-4" />
         </button>
@@ -87,8 +113,8 @@ export function ChatDockBar() {
         {/* Input */}
         <TextareaAutosize
           ref={textareaRef}
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
           onKeyDown={handleKeyDown}
           onFocus={() => setDockExpanded(true)}
           onCompositionStart={() => setIsComposing(true)}
@@ -124,6 +150,37 @@ export function ChatDockBar() {
           </button>
         )}
       </div>
+
+      {attachments.length > 0 && (
+        <div className="flex items-center justify-between gap-3 px-3 pb-2">
+          <div className="flex flex-wrap gap-2">
+            {attachments.map((attachment) => (
+              <span
+                key={attachment.id}
+                className="rounded-full bg-gray-100 px-2 py-1 text-[11px] text-gray-500 dark:bg-gray-800 dark:text-gray-300"
+              >
+                {attachment.name ?? attachment.mimeType}
+              </span>
+            ))}
+          </div>
+          <button
+            type="button"
+            onClick={clearAttachments}
+            className="text-[11px] font-medium text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+          >
+            {t("page.clearAttachments")}
+          </button>
+        </div>
+      )}
     </div>
   );
+}
+
+async function readFileAsDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result ?? ""));
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(file);
+  });
 }

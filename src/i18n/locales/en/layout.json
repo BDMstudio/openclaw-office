@@ -6,8 +6,10 @@
     "tokensLabel": "Tokens",
     "console": "Console",
     "office": "Office",
-    "livingOffice": "Living Office",
+    "chat": "Chat",
+    "navigation": "Primary navigation",
     "pageTitles": {
+      "chat": "Chat",
       "dashboard": "Dashboard",
       "channels": "Channels",
       "skills": "Skills",
@@ -15,11 +17,6 @@
       "agents": "Agents",
       "settings": "Settings",
       "fallback": "Console"
-    },
-    "viewMode": {
-      "switchTo": "Switch to {{mode}} view",
-      "mobileNotSupported": "3D mode not supported on small screens",
-      "webglNotSupported": "3D rendering not supported in this browser"
     },
     "theme": {
       "switchToDark": "Switch to dark mode",
@@ -42,8 +39,6 @@
     "subAgents": "Sub-Agents",
     "agentDetail": "Agent Detail",
     "eventTimeline": "Event Timeline",
-    "livingOffice": "Living Office",
-    "livingOfficeBeta": "Beta",
     "searchPlaceholder": "Search agents...",
     "filters": {
       "all": "All",

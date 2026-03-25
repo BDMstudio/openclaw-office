@@ -20,7 +20,6 @@ import type {
   SubAgentInfo,
   ThemeMode,
   TokenSnapshot,
-  ViewMode,
   VisualAgent,
 } from "@/gateway/types";
 import { ZONES, CORRIDOR_ENTRANCE } from "@/lib/constants";
@@ -77,13 +76,6 @@ function getInitialTheme(): ThemeMode {
     return stored;
   }
   return "dark";
-}
-
-function getInitialBloom(): boolean {
-  if (typeof window === "undefined") {
-    return true;
-  }
-  return window.devicePixelRatio >= 1.5;
 }
 
 function createVisualAgent(
@@ -227,12 +219,10 @@ export const useOfficeStore = create<OfficeStore>()(
     connectionStatus: "disconnected" as ConnectionStatus,
     connectionError: null,
     selectedAgentId: null,
-    viewMode: "2d" as ViewMode,
     eventHistory: [],
     sidebarCollapsed: true,
     lastSessionsSnapshot: null,
     theme: getInitialTheme(),
-    bloomEnabled: getInitialBloom(),
     operatorScopes: [] as string[],
     tokenHistory: [] as TokenSnapshot[],
     agentCosts: {} as Record<string, number>,
@@ -1007,12 +997,6 @@ export const useOfficeStore = create<OfficeStore>()(
       });
     },
 
-    setViewMode: (mode: ViewMode) => {
-      set((state) => {
-        state.viewMode = mode;
-      });
-    },
-
     setConnectionStatus: (status: ConnectionStatus, error?: string) => {
       set((state) => {
         state.connectionStatus = status;
@@ -1035,12 +1019,6 @@ export const useOfficeStore = create<OfficeStore>()(
       } catch {
         // localStorage unavailable
       }
-    },
-
-    setBloomEnabled: (enabled: boolean) => {
-      set((state) => {
-        state.bloomEnabled = enabled;
-      });
     },
 
     setOperatorScopes: (scopes: string[]) => {

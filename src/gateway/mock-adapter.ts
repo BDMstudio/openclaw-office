@@ -10,7 +10,7 @@ import type {
   AgentUpdateParams,
   AgentUpdateResult,
   ChannelInfo,
-  ChatMessage,
+  ChatHistoryResult,
   ChatSendParams,
   ConfigPatchResult,
   ConfigSchemaResponse,
@@ -19,6 +19,7 @@ import type {
   CronTask,
   CronTaskInput,
   ModelCatalogEntry,
+  SessionPatchParams,
   SessionInfo,
   SessionPreview,
   SkillInfo,
@@ -571,8 +572,11 @@ export class MockAdapter implements GatewayAdapter {
     this.pendingTimers.push(t);
   }
 
-  async chatHistory(): Promise<ChatMessage[]> {
-    return [
+  async chatHistory(sessionKey?: string): Promise<ChatHistoryResult> {
+    const prefix = sessionKey?.includes("session-") ? "新的 mock 会话" : "OpenClaw";
+    return {
+      thinkingLevel: "medium",
+      messages: [
       {
         id: "msg-hist-1",
         role: "user",
@@ -583,15 +587,35 @@ export class MockAdapter implements GatewayAdapter {
         id: "msg-hist-2",
         role: "assistant",
         content:
-          "**OpenClaw** 是一个多 Agent 协作系统，支持：\n\n- 多渠道消息接入（Telegram、Discord、WhatsApp 等）\n- 工具调用和技能扩展\n- 定时任务调度\n- 实时可视化监控\n\n你可以通过 OpenClaw Office 观察 Agent 的协作行为。",
+          `**${prefix}** 是一个多 Agent 协作系统，支持：\n\n- 多渠道消息接入（Telegram、Discord、WhatsApp 等）\n- 工具调用和技能扩展\n- 定时任务调度\n- 实时可视化监控\n\n你可以通过 OpenClaw Office 观察 Agent 的协作行为。`,
         timestamp: Date.now() - 110_000,
       },
-    ];
+      ],
+    };
   }
 
   async chatSend(params: ChatSendParams): Promise<void> {
     const runId = `mock-run-${Date.now()}`;
     const responseText = `收到你的消息：「${params.text}」\n\n这是 Mock 模式下的模拟回复。在连接真实 Gateway 后，这里将显示 Agent 的实际响应。`;
+
+    this.scheduleTimer(() => {
+      this.emit("agent", {
+        type: "event",
+        event: "agent",
+        payload: {
+          runId,
+          seq: 1,
+          stream: "tool",
+          ts: Date.now(),
+          sessionKey: params.sessionKey,
+          data: {
+            phase: "start",
+            name: "mock_search",
+            args: { query: params.text },
+          },
+        },
+      });
+    }, 150);
 
     // Simulate Gateway chat events: delta → delta → final
     this.scheduleTimer(() => {
@@ -600,6 +624,7 @@ export class MockAdapter implements GatewayAdapter {
         event: "chat",
         payload: {
           runId,
+          sessionKey: params.sessionKey,
           state: "delta",
           message: {
             role: "assistant",
@@ -615,6 +640,7 @@ export class MockAdapter implements GatewayAdapter {
         event: "chat",
         payload: {
           runId,
+          sessionKey: params.sessionKey,
           state: "delta",
           message: {
             role: "assistant",
@@ -625,17 +651,37 @@ export class MockAdapter implements GatewayAdapter {
     }, 800);
 
     this.scheduleTimer(() => {
+      this.emit("agent", {
+        type: "event",
+        event: "agent",
+        payload: {
+          runId,
+          seq: 2,
+          stream: "tool",
+          ts: Date.now(),
+          sessionKey: params.sessionKey,
+          data: {
+            phase: "end",
+            name: "mock_search",
+          },
+        },
+      });
+    }, 1000);
+
+    this.scheduleTimer(() => {
       this.emit("chat", {
         type: "event",
         event: "chat",
         payload: {
           runId,
+          sessionKey: params.sessionKey,
           state: "final",
           message: {
             role: "assistant",
             content: responseText,
             id: `mock-msg-${Date.now()}`,
             stopReason: "end_turn",
+            attachments: params.attachments,
           },
         },
       });
@@ -647,7 +693,24 @@ export class MockAdapter implements GatewayAdapter {
     this.emit("chat", {
       type: "event",
       event: "chat",
-      payload: { state: "aborted" },
+      payload: { state: "aborted", sessionKey: "agent:main:main" },
+    });
+  }
+
+  async chatInject(sessionKey: string, content: string): Promise<void> {
+    this.emit("chat", {
+      type: "event",
+      event: "chat",
+      payload: {
+        runId: `inject-${Date.now()}`,
+        sessionKey,
+        state: "final",
+        message: {
+          id: `inject-msg-${Date.now()}`,
+          role: "assistant",
+          content,
+        },
+      },
     });
   }
 
@@ -673,10 +736,23 @@ export class MockAdapter implements GatewayAdapter {
   }
 
   async sessionsPreview(sessionKey: string): Promise<SessionPreview> {
-    return { key: sessionKey, messages: await this.chatHistory() };
+    const result = await this.chatHistory(sessionKey);
+    return { key: sessionKey, messages: result.messages };
   }
 
   async sessionsDelete(_sessionKey: string, _options?: { deleteTranscript?: boolean }): Promise<void> {
+    return;
+  }
+
+  async sessionsPatch(_sessionKey: string, _patch: SessionPatchParams): Promise<void> {
+    return;
+  }
+
+  async sessionsReset(_sessionKey: string): Promise<void> {
+    return;
+  }
+
+  async sessionsCompact(_sessionKey: string): Promise<void> {
     return;
   }
 

@@ -23,9 +23,9 @@
 
 ### Chat
 
-- Bottom-docked chat bar for real-time conversations with Agents
-- Agent selector, streaming message display, Markdown rendering
-- Chat history drawer with timeline view
+- Dedicated top-navigation Chat workspace at `/#/chat`, with the dock retained as a quick-entry surface
+- Session switching, new-session creation, agent targeting, live streaming transcript, and abort support
+- Slash commands, image attachments, search, export, focus mode, and pinned-reference workflows
 
 ![office-2D](./assets/office-2d.png)
 
@@ -226,7 +226,7 @@ OpenClaw-Office/
 │   │   ├── office-3d/               # 3D R3F scene
 │   │   ├── overlays/                # HTML overlays (speech bubbles)
 │   │   ├── panels/                  # Detail/metrics/chart panels
-│   │   ├── chat/                    # Chat dock bar
+│   │   ├── chat/                    # Shared chat workspace UI (page + dock)
 │   │   ├── console/                 # Console feature components
 │   │   ├── pages/                   # Console route pages
 │   │   └── shared/                  # Shared components

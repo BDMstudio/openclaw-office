@@ -32,6 +32,9 @@ export default defineConfig({
         rewrite: () => gatewayPath,
         configure: (proxy) => {
           proxy.on("error", () => {});
+          proxy.on("proxyReqWs", (_proxyReq, _req, socket) => {
+            socket.on("error", () => {});
+          });
         },
       },
       "/api/gateway/ws": {
@@ -41,6 +44,9 @@ export default defineConfig({
         rewrite: () => gatewayPath,
         configure: (proxy) => {
           proxy.on("error", () => {});
+          proxy.on("proxyReqWs", (_proxyReq, _req, socket) => {
+            socket.on("error", () => {});
+          });
         },
       },
     },

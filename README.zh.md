@@ -23,9 +23,9 @@
 
 ### Chat 聊天
 
-- 底部停靠的聊天栏，支持与 Agent 实时对话
-- Agent 选择器、流式消息展示、Markdown 渲染
-- 聊天历史抽屉和时间轴视图
+- 顶部导航可直达的独立 Chat 工作区，停靠栏保留为快捷入口
+- 支持会话切换、新建会话、目标 Agent 路由、实时流式转录与中止
+- 支持斜杠命令、图片附件、搜索、导出、专注模式和置顶引用工作流
 
 ![office-2D](./assets/office-2d.png)
 
@@ -226,7 +226,7 @@ OpenClaw-Office/
 │   │   ├── office-3d/               # 3D R3F 场景
 │   │   ├── overlays/                # HTML Overlay（气泡等）
 │   │   ├── panels/                  # 详情/指标/图表面板
-│   │   ├── chat/                    # Chat 停靠栏
+│   │   ├── chat/                    # 共享 Chat 工作区 UI（页面 + 停靠栏）
 │   │   ├── console/                 # 控制台功能组件
 │   │   ├── pages/                   # 控制台路由页面
 │   │   └── shared/                  # 公共组件

@@ -124,15 +124,40 @@ export interface CronTaskInput {
 
 export type MessageRole = "user" | "assistant" | "system";
 
+export interface ChatAttachment {
+  id?: string;
+  name?: string;
+  mimeType: string;
+  dataUrl?: string;
+  content?: string;
+}
+
+export interface ChatContentTextBlock {
+  type: "text";
+  text: string;
+}
+
+export interface ChatContentImageBlock {
+  type: "image";
+  mimeType?: string;
+  dataUrl?: string;
+  source?: Record<string, unknown>;
+}
+
+export type ChatContentBlock = ChatContentTextBlock | ChatContentImageBlock;
+
 export interface ChatMessage {
   id: string;
   role: MessageRole;
-  content: string;
+  content: string | ChatContentBlock[];
   timestamp: number;
   runId?: string;
   toolCalls?: ToolCallInfo[];
   thinking?: string;
   isStreaming?: boolean;
+  stopReason?: string;
+  aborted?: boolean;
+  attachments?: ChatAttachment[];
 }
 
 export interface ToolCallInfo {
@@ -146,7 +171,7 @@ export interface ToolCallInfo {
 export interface ChatSendParams {
   text: string;
   sessionKey?: string;
-  attachments?: string[];
+  attachments?: ChatAttachment[];
 }
 
 export interface GatewayChatSendParams {
@@ -154,20 +179,48 @@ export interface GatewayChatSendParams {
   message: string;
   deliver?: boolean;
   idempotencyKey?: string;
+  attachments?: Array<{
+    type: string;
+    mimeType: string;
+    content: string;
+    name?: string;
+  }>;
+}
+
+export interface ChatHistoryResult {
+  messages: ChatMessage[];
+  thinkingLevel?: string | null;
 }
 
 export interface SessionInfo {
   key: string;
-  agentId: string;
-  label: string;
-  createdAt: number;
-  lastActiveAt: number;
-  messageCount: number;
+  agentId?: string;
+  label?: string;
+  createdAt?: number;
+  lastActiveAt?: number;
+  messageCount?: number;
+  kind?: string;
+  updatedAt?: number | null;
+  modelProvider?: string | null;
+  model?: string | null;
+  thinkingLevel?: string | null;
+  verboseLevel?: string | null;
+  fastMode?: boolean | null;
+  contextTokens?: number | null;
+  totalTokens?: number | null;
+  totalTokensFresh?: boolean;
 }
 
 export interface SessionPreview {
   key: string;
   messages: ChatMessage[];
+}
+
+export interface SessionPatchParams {
+  model?: string | null;
+  thinkingLevel?: string | null;
+  verboseLevel?: string | null;
+  fastMode?: boolean | null;
 }
 
 export interface ToolCatalogEntry {

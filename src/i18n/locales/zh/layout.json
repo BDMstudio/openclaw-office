@@ -6,8 +6,10 @@
     "tokensLabel": "Tokens",
     "console": "控制台",
     "office": "办公室",
-    "livingOffice": "Living Office",
+    "chat": "聊天",
+    "navigation": "主导航",
     "pageTitles": {
+      "chat": "聊天",
       "dashboard": "仪表盘",
       "channels": "渠道",
       "skills": "技能",
@@ -15,11 +17,6 @@
       "agents": "智能体管理",
       "settings": "设置",
       "fallback": "控制台"
-    },
-    "viewMode": {
-      "switchTo": "切换到 {{mode}} 视图",
-      "mobileNotSupported": "小屏幕不支持 3D 模式",
-      "webglNotSupported": "当前浏览器不支持 3D 渲染"
     },
     "theme": {
       "switchToDark": "切换到暗色模式",
@@ -42,8 +39,6 @@
     "subAgents": "子智能体",
     "agentDetail": "智能体 详情",
     "eventTimeline": "事件时间轴",
-    "livingOffice": "Living Office",
-    "livingOfficeBeta": "Beta",
     "searchPlaceholder": "搜索 Agent...",
     "filters": {
       "all": "全部",

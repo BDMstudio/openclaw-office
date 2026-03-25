@@ -85,10 +85,10 @@ describe("MockAdapter", () => {
   });
 
   it("chatHistory returns array of messages", async () => {
-    const messages = await adapter.chatHistory();
-    expect(Array.isArray(messages)).toBe(true);
-    expect(messages.length).toBeGreaterThan(0);
-    expect(messages[0]).toHaveProperty("role");
-    expect(messages[0]).toHaveProperty("content");
+    const result = await adapter.chatHistory();
+    expect(Array.isArray(result.messages)).toBe(true);
+    expect(result.messages.length).toBeGreaterThan(0);
+    expect(result.messages[0]).toHaveProperty("role");
+    expect(result.messages[0]).toHaveProperty("content");
   });
 });

@@ -12,9 +12,57 @@ export const MarkdownContent = memo(function MarkdownContent({ content }: Markdo
       <Markdown
         remarkPlugins={[remarkGfm]}
         components={{
+          p: ({ children, ...props }) => (
+            <p className="whitespace-pre-wrap leading-7" {...props}>
+              {children}
+            </p>
+          ),
+          h1: ({ children, ...props }) => (
+            <h1 className="mt-4 text-xl font-semibold tracking-tight" {...props}>
+              {children}
+            </h1>
+          ),
+          h2: ({ children, ...props }) => (
+            <h2 className="mt-4 text-lg font-semibold tracking-tight" {...props}>
+              {children}
+            </h2>
+          ),
+          h3: ({ children, ...props }) => (
+            <h3 className="mt-3 text-base font-semibold" {...props}>
+              {children}
+            </h3>
+          ),
+          blockquote: ({ children, ...props }) => (
+            <blockquote
+              className="border-l-2 border-blue-200 pl-4 text-gray-600 dark:border-blue-800 dark:text-gray-300"
+              {...props}
+            >
+              {children}
+            </blockquote>
+          ),
+          table: ({ children, ...props }) => (
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse text-left text-xs" {...props}>
+                {children}
+              </table>
+            </div>
+          ),
+          th: ({ children, ...props }) => (
+            <th
+              className="border-b border-gray-200 px-3 py-2 font-semibold text-gray-700 dark:border-gray-700 dark:text-gray-200"
+              {...props}
+            >
+              {children}
+            </th>
+          ),
+          td: ({ children, ...props }) => (
+            <td className="border-b border-gray-100 px-3 py-2 align-top dark:border-gray-800" {...props}>
+              {children}
+            </td>
+          ),
           pre: ({ children, ...props }) => (
             <pre
-              className="overflow-x-auto rounded bg-gray-100 p-2 text-xs dark:bg-gray-800"
+              className="overflow-x-auto rounded-2xl border border-gray-200 bg-gray-950 p-4 text-xs text-gray-100 dark:border-gray-700"
               {...props}
             >
               {children}
@@ -25,7 +73,7 @@ export const MarkdownContent = memo(function MarkdownContent({ content }: Markdo
             if (isInline) {
               return (
                 <code
-                  className="rounded bg-gray-100 px-1 py-0.5 text-xs dark:bg-gray-800"
+                  className="rounded bg-gray-100 px-1.5 py-0.5 text-[0.85em] dark:bg-gray-800"
                   {...props}
                 >
                   {children}

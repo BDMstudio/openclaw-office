@@ -20,6 +20,7 @@
     "confirm": "确定",
     "stop": "停止",
     "retry": "重试",
+    "dismiss": "忽略",
     "save": "保存",
     "delete": "删除",
     "refresh": "刷新",
@@ -33,6 +34,9 @@
     "hoursAgo": "{{count}}时前",
     "running": "运行 {{seconds}}s",
     "runningMinutes": "运行 {{minutes}}m {{seconds}}s"
+  },
+  "format": {
+    "viaValue": "，提供方为 {{value}}"
   },
   "empty": {
     "noData": "暂无数据",

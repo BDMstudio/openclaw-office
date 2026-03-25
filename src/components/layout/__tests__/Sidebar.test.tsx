@@ -32,7 +32,6 @@ describe("Sidebar", () => {
       links: [],
       connectionStatus: "disconnected",
       connectionError: null,
-      viewMode: "2d",
       runIdMap: new Map(),
       sessionKeyMap: new Map(),
     });

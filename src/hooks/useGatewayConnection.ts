@@ -10,8 +10,6 @@ import type {
 } from "@/gateway/types";
 import { GatewayWsClient } from "@/gateway/ws-client";
 import { EventThrottle } from "@/lib/event-throttle";
-import { PerceptionEngine } from "@/perception/perception-engine";
-import { useProjectionStore } from "@/perception/projection-store";
 import { useOfficeStore } from "@/store/office-store";
 import { useSubAgentPoller } from "./useSubAgentPoller";
 import { useUsagePoller } from "./useUsagePoller";
@@ -25,7 +23,6 @@ export function useGatewayConnection({ url, token }: UseGatewayConnectionOptions
   const wsRef = useRef<GatewayWsClient | null>(null);
   const rpcRef = useRef<GatewayRpcClient | null>(null);
   const throttleRef = useRef<EventThrottle | null>(null);
-  const perceptionRef = useRef<PerceptionEngine | null>(null);
 
   const setConnectionStatus = useOfficeStore((s) => s.setConnectionStatus);
   const initAgents = useOfficeStore((s) => s.initAgents);
@@ -40,26 +37,16 @@ export function useGatewayConnection({ url, token }: UseGatewayConnectionOptions
       return;
     }
 
-    // Mock mode: use MockAdapter directly (no WebSocket needed)
     if (isMockMode()) {
       let unsubEvent: (() => void) | null = null;
-      const mockPerception = new PerceptionEngine();
-      perceptionRef.current = mockPerception;
-      const applyPerceivedEvent = useProjectionStore.getState().applyPerceivedEvent;
-      mockPerception.onPerceived((event) => {
-        applyPerceivedEvent(event);
-      });
 
       void initAdapter("mock").then(async (adapter) => {
-        // 1. Wire event handler FIRST so no events are lost
         unsubEvent = adapter.onEvent((event: string, payload: unknown) => {
           if (event === "agent") {
             processAgentEvent(payload as AgentEventPayload);
-            mockPerception.ingest(payload as AgentEventPayload);
           }
         });
 
-        // 2. Apply config BEFORE initAgents (prefillLoungePlaceholders uses maxSubAgents)
         const config = await adapter.configGet();
         const cfg = config.config as Record<string, unknown>;
         const agentsCfg = cfg.agents as Record<string, unknown> | undefined;
@@ -77,37 +64,26 @@ export function useGatewayConnection({ url, token }: UseGatewayConnectionOptions
           });
         }
 
-        // 3. Init agents (triggers prefillLoungePlaceholders with correct maxSubAgents)
         const agentList = await adapter.agentsList() as AgentsListResponse;
         cacheAgentNames(agentList.agents);
         initAgents(agentList.agents);
         setOperatorScopes(["operator.admin", "operator.read"]);
         setConnectionStatus("connected");
       });
+
       return () => {
         unsubEvent?.();
-        mockPerception.destroy();
-        perceptionRef.current = null;
       };
     }
 
     const ws = new GatewayWsClient();
     const rpc = new GatewayRpcClient(ws);
     const throttle = new EventThrottle();
-    const perception = new PerceptionEngine();
 
     wsRef.current = ws;
     rpcRef.current = rpc;
     throttleRef.current = throttle;
-    perceptionRef.current = perception;
 
-    // Perception Engine → ProjectionStore (Living Office 管道)
-    const applyPerceivedEvent = useProjectionStore.getState().applyPerceivedEvent;
-    perception.onPerceived((event) => {
-      applyPerceivedEvent(event);
-    });
-
-    // 旧管道: EventThrottle → processAgentEvent (2D/3D Office 视图)
     throttle.onBatch((events) => {
       for (const event of events) {
         processAgentEvent(event);
@@ -123,7 +99,6 @@ export function useGatewayConnection({ url, token }: UseGatewayConnectionOptions
 
       if (status === "connected") {
         initAgentsFromSnapshot(ws, initAgents);
-        initProjectionFromSnapshot(ws);
         const authScopes = ws.getAuthInfo()?.scopes;
         setOperatorScopes(Array.isArray(authScopes) ? authScopes : ["operator.admin", "operator.read"]);
 
@@ -136,7 +111,6 @@ export function useGatewayConnection({ url, token }: UseGatewayConnectionOptions
     ws.onEvent("agent", (frame: GatewayEventFrame) => {
       const payload = frame.payload as AgentEventPayload;
       throttle.push(payload);
-      perception.ingest(payload);
     });
 
     ws.onEvent("health", (frame: GatewayEventFrame) => {
@@ -151,19 +125,27 @@ export function useGatewayConnection({ url, token }: UseGatewayConnectionOptions
 
     return () => {
       throttle.destroy();
-      perception.destroy();
       ws.disconnect();
       wsRef.current = null;
       rpcRef.current = null;
       throttleRef.current = null;
-      perceptionRef.current = null;
     };
-  }, [url, token, setConnectionStatus, initAgents, syncMainAgents, processAgentEvent, setOperatorScopes, setMaxSubAgents, setAgentToAgentConfig]);
+  }, [
+    url,
+    token,
+    setConnectionStatus,
+    initAgents,
+    syncMainAgents,
+    processAgentEvent,
+    setOperatorScopes,
+    setMaxSubAgents,
+    setAgentToAgentConfig,
+  ]);
 
   useSubAgentPoller(rpcRef);
   useUsagePoller(rpcRef);
 
-  return { wsClient: wsRef, rpcClient: rpcRef, perceptionEngine: perceptionRef };
+  return { wsClient: wsRef, rpcClient: rpcRef };
 }
 
 const agentNameCache = new Map<string, { name: string; identity?: AgentSummary["identity"] }>();
@@ -203,19 +185,6 @@ function initAgentsFromSnapshot(
   }
 }
 
-function initProjectionFromSnapshot(ws: GatewayWsClient): void {
-  const snapshot = ws.getSnapshot();
-  const health = snapshot?.health as HealthSnapshot | undefined;
-  if (health?.agents) {
-    const batch = health.agents.map((a) => ({
-      agentId: a.agentId,
-      role: resolveAgentName(a.agentId),
-      deskId: a.agentId,
-    }));
-    useProjectionStore.getState().initAgentsBatch(batch);
-  }
-}
-
 interface ConfigGetResponse {
   value?: unknown;
 }
@@ -229,12 +198,6 @@ async function fetchAgentNamesAndUpdate(
     if (result?.agents) {
       cacheAgentNames(result.agents);
       syncMainAgents(result.agents);
-      const batch = result.agents.map((a) => ({
-        agentId: a.id,
-        role: a.identity?.name ?? a.name ?? a.id,
-        deskId: a.id,
-      }));
-      useProjectionStore.getState().initAgentsBatch(batch);
     }
   } catch {
     // agents.list not available yet, snapshot data will be used
@@ -258,9 +221,7 @@ async function fetchGatewayConfig(
       if (subagents?.maxConcurrent && subagents.maxConcurrent >= 1 && subagents.maxConcurrent <= 50) {
         setMaxSubAgents(subagents.maxConcurrent);
       }
-      const a2a = val["tools.agentToAgent"] as
-        | { enabled?: boolean; allow?: string[] }
-        | undefined;
+      const a2a = val["tools.agentToAgent"] as { enabled?: boolean; allow?: string[] } | undefined;
       if (a2a) {
         setAgentToAgentConfig({
           enabled: a2a.enabled ?? false,
@@ -269,6 +230,6 @@ async function fetchGatewayConfig(
       }
     }
   } catch {
-    // Gateway doesn't support config.get or permission denied — use defaults
+    // config.get not available; keep defaults
   }
 }

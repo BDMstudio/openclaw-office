@@ -81,11 +81,6 @@ export function allocatePosition(
   };
 }
 
-/** Map 2D SVG coordinates to 3D world coordinates: x→x, y→z, ground plane y=0 */
-export function position2dTo3d(pos: { x: number; y: number }): [number, number, number] {
-  return [pos.x * SCALE_X_2D_TO_3D, 0, pos.y * SCALE_Z_2D_TO_3D];
-}
-
 /** Allocate equi-angular positions around a meeting table center */
 export function allocateMeetingPositions(
   agentIds: string[],

@@ -241,10 +241,10 @@ export interface AgentToAgentConfig {
 
 // --- Store ---
 
-export type ViewMode = "2d" | "3d";
 export type ThemeMode = "light" | "dark";
 export type PageId =
   | "office"
+  | "chat"
   | "dashboard"
   | "agents"
   | "channels"
@@ -265,12 +265,10 @@ export interface OfficeStore {
   connectionStatus: ConnectionStatus;
   connectionError: string | null;
   selectedAgentId: string | null;
-  viewMode: ViewMode;
   eventHistory: EventHistoryItem[];
   sidebarCollapsed: boolean;
   lastSessionsSnapshot: SessionSnapshot | null;
   theme: ThemeMode;
-  bloomEnabled: boolean;
   operatorScopes: string[];
   tokenHistory: TokenSnapshot[];
   agentCosts: Record<string, number>;
@@ -323,11 +321,9 @@ export interface OfficeStore {
 
   // UI actions
   selectAgent: (id: string | null) => void;
-  setViewMode: (mode: ViewMode) => void;
   setConnectionStatus: (status: ConnectionStatus, error?: string) => void;
   setSidebarCollapsed: (collapsed: boolean) => void;
   setTheme: (theme: ThemeMode) => void;
-  setBloomEnabled: (enabled: boolean) => void;
 
   // 配置感知
   setMaxSubAgents: (n: number) => void;

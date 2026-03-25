@@ -16,12 +16,10 @@ function resetStore() {
     connectionStatus: "disconnected",
     connectionError: null,
     selectedAgentId: null,
-    viewMode: "2d",
     eventHistory: [],
     sidebarCollapsed: false,
     lastSessionsSnapshot: null,
     theme: "dark",
-    bloomEnabled: true,
     operatorScopes: [],
     tokenHistory: [],
     agentCosts: {},
@@ -206,19 +204,6 @@ describe("office-store", () => {
     });
   });
 
-  describe("viewMode", () => {
-    it("setViewMode switches to 3d", () => {
-      useOfficeStore.getState().setViewMode("3d");
-      expect(useOfficeStore.getState().viewMode).toBe("3d");
-    });
-
-    it("setViewMode switches back to 2d", () => {
-      useOfficeStore.getState().setViewMode("3d");
-      useOfficeStore.getState().setViewMode("2d");
-      expect(useOfficeStore.getState().viewMode).toBe("2d");
-    });
-  });
-
   describe("theme", () => {
     it("defaults to dark", () => {
       expect(useOfficeStore.getState().theme).toBe("dark");
@@ -243,18 +228,6 @@ describe("office-store", () => {
     });
   });
 
-  describe("bloomEnabled", () => {
-    it("defaults to true (normal DPR)", () => {
-      expect(useOfficeStore.getState().bloomEnabled).toBe(true);
-    });
-
-    it("setBloomEnabled toggles", () => {
-      useOfficeStore.getState().setBloomEnabled(false);
-      expect(useOfficeStore.getState().bloomEnabled).toBe(false);
-      useOfficeStore.getState().setBloomEnabled(true);
-      expect(useOfficeStore.getState().bloomEnabled).toBe(true);
-    });
-  });
 
   describe("globalMetrics", () => {
     it("counts active agents correctly", () => {

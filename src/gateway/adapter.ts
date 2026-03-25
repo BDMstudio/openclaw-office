@@ -12,7 +12,7 @@ import type {
   AgentUpdateParams,
   AgentUpdateResult,
   ChannelInfo,
-  ChatMessage,
+  ChatHistoryResult,
   ChatSendParams,
   ConfigPatchResult,
   ConfigSchemaResponse,
@@ -21,6 +21,7 @@ import type {
   CronTask,
   CronTaskInput,
   ModelCatalogEntry,
+  SessionPatchParams,
   SessionInfo,
   SessionPreview,
   SkillInfo,
@@ -46,14 +47,18 @@ export interface GatewayAdapter {
   onEvent(handler: AdapterEventHandler): () => void;
 
   // Chat
-  chatHistory(sessionKey?: string): Promise<ChatMessage[]>;
+  chatHistory(sessionKey?: string): Promise<ChatHistoryResult>;
   chatSend(params: ChatSendParams): Promise<void>;
   chatAbort(sessionKeyOrRunId: string): Promise<void>;
+  chatInject(sessionKey: string, content: string): Promise<void>;
 
   // Sessions
   sessionsList(): Promise<SessionInfo[]>;
   sessionsPreview(sessionKey: string): Promise<SessionPreview>;
   sessionsDelete(sessionKey: string, options?: { deleteTranscript?: boolean }): Promise<void>;
+  sessionsPatch(sessionKey: string, patch: SessionPatchParams): Promise<void>;
+  sessionsReset(sessionKey: string): Promise<void>;
+  sessionsCompact(sessionKey: string): Promise<void>;
 
   // Channels
   channelsStatus(): Promise<ChannelInfo[]>;

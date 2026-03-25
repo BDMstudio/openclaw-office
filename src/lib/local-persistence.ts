@@ -1,4 +1,5 @@
 import type { ChatDockMessage } from "@/store/console-stores/chat-dock-store";
+import type { SessionInfo } from "@/gateway/adapter-types";
 import type { EventHistoryItem } from "@/gateway/types";
 
 interface LocalPersistenceOptions {
@@ -14,8 +15,12 @@ interface StoredChatMessage extends ChatDockMessage {
   sessionKey: string;
 }
 
+interface StoredSessionInfo extends SessionInfo {
+  cachedAt: number;
+}
+
 const DEFAULT_DB_NAME = "openclaw-office-cache";
-const DEFAULT_VERSION = 1;
+const DEFAULT_VERSION = 2;
 const DEFAULT_MAX_MESSAGES_PER_SESSION = 500;
 const DEFAULT_MAX_EVENTS = 1000;
 const DEFAULT_MESSAGE_EXPIRE_DAYS = 30;
@@ -24,6 +29,7 @@ const QUOTA_THRESHOLD = 0.8;
 
 const STORE_CHAT = "chat_messages";
 const STORE_EVENTS = "event_history";
+const STORE_SESSIONS = "chat_sessions";
 
 class LocalPersistence {
   private db: IDBDatabase | null = null;
@@ -64,6 +70,11 @@ class LocalPersistence {
           if (!db.objectStoreNames.contains(STORE_EVENTS)) {
             const eventStore = db.createObjectStore(STORE_EVENTS, { autoIncrement: true });
             eventStore.createIndex("timestamp", "timestamp", { unique: false });
+          }
+          if (!db.objectStoreNames.contains(STORE_SESSIONS)) {
+            const sessionStore = db.createObjectStore(STORE_SESSIONS, { keyPath: "key" });
+            sessionStore.createIndex("lastActiveAt", "lastActiveAt", { unique: false });
+            sessionStore.createIndex("cachedAt", "cachedAt", { unique: false });
           }
         };
         request.onsuccess = () => resolve(request.result);
@@ -149,6 +160,52 @@ class LocalPersistence {
       for (const key of keys) {
         store.delete(key);
       }
+      await idbTransaction(tx);
+    } catch {
+      // silent
+    }
+  }
+
+  // --- Session History ---
+
+  async getSessions(): Promise<{ sessions: SessionInfo[]; cachedAt: number | null }> {
+    if (!this.canOperate()) return { sessions: [], cachedAt: null };
+    try {
+      const tx = this.db!.transaction(STORE_SESSIONS, "readonly");
+      const store = tx.objectStore(STORE_SESSIONS);
+      const all = await idbRequest<StoredSessionInfo[]>(store.getAll());
+      all.sort((a, b) => (b.lastActiveAt ?? 0) - (a.lastActiveAt ?? 0));
+      return {
+        sessions: all.map(({ cachedAt: _cachedAt, ...session }) => session),
+        cachedAt: all[0]?.cachedAt ?? null,
+      };
+    } catch {
+      return { sessions: [], cachedAt: null };
+    }
+  }
+
+  async saveSessions(sessions: SessionInfo[]): Promise<void> {
+    if (!this.canOperate()) return;
+    try {
+      if (await this.isQuotaExceeded()) return;
+      const now = Date.now();
+      const tx = this.db!.transaction(STORE_SESSIONS, "readwrite");
+      const store = tx.objectStore(STORE_SESSIONS);
+      store.clear();
+      for (const session of sessions) {
+        store.put({ ...session, cachedAt: now } as StoredSessionInfo);
+      }
+      await idbTransaction(tx);
+    } catch {
+      // silent
+    }
+  }
+
+  async clearSessions(): Promise<void> {
+    if (!this.canOperate()) return;
+    try {
+      const tx = this.db!.transaction(STORE_SESSIONS, "readwrite");
+      tx.objectStore(STORE_SESSIONS).clear();
       await idbTransaction(tx);
     } catch {
       // silent

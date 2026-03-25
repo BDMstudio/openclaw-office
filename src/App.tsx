@@ -1,67 +1,20 @@
-import { lazy, Suspense, useState, useEffect } from "react";
-import { useTranslation } from "react-i18next";
+import { useEffect } from "react";
 import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { AppShell } from "@/components/layout/AppShell";
 import { ConsoleLayout } from "@/components/layout/ConsoleLayout";
-import { LivingOfficeView } from "@/components/living-office/LivingOfficeView";
 import { FloorPlan } from "@/components/office-2d/FloorPlan";
 import { AgentsPage } from "@/components/pages/AgentsPage";
 import { ChannelsPage } from "@/components/pages/ChannelsPage";
 import { CronPage } from "@/components/pages/CronPage";
 import { DashboardPage } from "@/components/pages/DashboardPage";
+import { ChatPage } from "@/components/pages/ChatPage";
 import { SettingsPage } from "@/components/pages/SettingsPage";
 import { SkillsPage } from "@/components/pages/SkillsPage";
+import { ChatWorkspaceBootstrap } from "@/components/chat/ChatWorkspaceBootstrap";
 import type { PageId } from "@/gateway/types";
 import { useGatewayConnection } from "@/hooks/useGatewayConnection";
 import { useResponsive } from "@/hooks/useResponsive";
 import { useOfficeStore } from "@/store/office-store";
-import { PerceptionEngineContext } from "@/components/living-office/hud/perception-context";
-
-const Scene3D = lazy(() => import("@/components/office-3d/Scene3D"));
-
-function Scene3DFallback() {
-  const { t } = useTranslation("office");
-  return (
-    <div className="flex h-full w-full items-center justify-center bg-gray-50 dark:bg-gray-950">
-      <div className="flex flex-col items-center gap-3">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-blue-500 border-t-transparent" />
-        <span className="text-sm text-gray-500 dark:text-gray-400">{t("loading3D")}</span>
-      </div>
-    </div>
-  );
-}
-
-function OfficeView() {
-  const viewMode = useOfficeStore((s) => s.viewMode);
-  const [fading, setFading] = useState(false);
-  const [displayMode, setDisplayMode] = useState(viewMode);
-
-  useEffect(() => {
-    if (viewMode !== displayMode) {
-      setFading(true);
-      const timer = setTimeout(() => {
-        setDisplayMode(viewMode);
-        setFading(false);
-      }, 150);
-      return () => clearTimeout(timer);
-    }
-  }, [viewMode, displayMode]);
-
-  return (
-    <div
-      className="h-full w-full transition-opacity duration-300"
-      style={{ opacity: fading ? 0 : 1, position: "relative" }}
-    >
-      {displayMode === "2d" ? (
-        <FloorPlan />
-      ) : (
-        <Suspense fallback={<Scene3DFallback />}>
-          <Scene3D />
-        </Suspense>
-      )}
-    </div>
-  );
-}
 
 function ThemeSync() {
   const theme = useOfficeStore((s) => s.theme);
@@ -80,7 +33,7 @@ function ThemeSync() {
 
 const PAGE_MAP: Record<string, PageId> = {
   "/": "office",
-  "/living-office": "office",
+  "/chat": "chat",
   "/dashboard": "dashboard",
   "/agents": "agents",
   "/channels": "channels",
@@ -129,26 +82,17 @@ export function App() {
   );
   const gatewayToken = injected?.gatewayToken || import.meta.env.VITE_GATEWAY_TOKEN || "";
   const { isMobile } = useResponsive();
-  const setViewMode = useOfficeStore((s) => s.setViewMode);
-
-  const { wsClient, perceptionEngine } = useGatewayConnection({ url: gatewayUrl, token: gatewayToken });
-
-  useEffect(() => {
-    if (isMobile) {
-      setViewMode("2d");
-    }
-  }, [isMobile, setViewMode]);
+  const { wsClient } = useGatewayConnection({ url: gatewayUrl, token: gatewayToken });
 
   return (
-    <PerceptionEngineContext value={perceptionEngine}>
+    <>
       <ThemeSync />
       <PageTracker />
+      <ChatWorkspaceBootstrap wsClient={wsClient} />
       <Routes>
-        <Route element={<AppShell wsClient={wsClient} isMobile={isMobile} />}>
-          <Route path="/" element={<OfficeView />} />
-          <Route path="/living-office" element={<LivingOfficeView />} />
-        </Route>
+        <Route path="/" element={<AppShell isMobile={isMobile}><FloorPlan /></AppShell>} />
         <Route element={<ConsoleLayout />}>
+          <Route path="/chat" element={<ChatPage />} />
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/agents" element={<AgentsPage />} />
           <Route path="/channels" element={<ChannelsPage />} />
@@ -158,6 +102,6 @@ export function App() {
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
-    </PerceptionEngineContext>
+    </>
   );
 }

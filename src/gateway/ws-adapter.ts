@@ -12,7 +12,7 @@ import type {
   AgentUpdateResult,
   ChannelInfo,
   ChannelType,
-  ChatMessage,
+  ChatHistoryResult,
   ChatSendParams,
   ConfigPatchResult,
   ConfigSchemaResponse,
@@ -21,6 +21,7 @@ import type {
   CronTask,
   CronTaskInput,
   ModelCatalogEntry,
+  SessionPatchParams,
   SessionInfo,
   SessionPreview,
   SkillInfo,
@@ -79,21 +80,54 @@ export class WsAdapter implements GatewayAdapter {
     };
   }
 
-  async chatHistory(sessionKey?: string): Promise<ChatMessage[]> {
-    return this.rpcClient.request<ChatMessage[]>("chat.history", sessionKey ? { sessionKey } : {});
+  async chatHistory(sessionKey?: string): Promise<ChatHistoryResult> {
+    const result = await this.rpcClient.request<
+      ChatHistoryResult | { messages?: ChatHistoryResult["messages"]; thinkingLevel?: string | null } | ChatHistoryResult["messages"]
+    >("chat.history", sessionKey ? { sessionKey } : {});
+    if (Array.isArray(result)) {
+      return { messages: result };
+    }
+    return {
+      messages: Array.isArray(result?.messages) ? result.messages : [],
+      thinkingLevel: result?.thinkingLevel ?? null,
+    };
   }
 
   async chatSend(params: ChatSendParams): Promise<void> {
+    const attachments = params.attachments
+      ?.map((attachment) => {
+        const dataUrl = attachment.dataUrl?.trim() ?? "";
+        const match = /^data:([^;]+);base64,(.+)$/u.exec(dataUrl);
+        if (!match && !attachment.content) {
+          return null;
+        }
+        return {
+          type: "image",
+          mimeType: attachment.mimeType,
+          content: attachment.content ?? match?.[2] ?? "",
+          name: attachment.name,
+        };
+      })
+      .filter((value): value is NonNullable<typeof value> => value !== null);
+
     await this.rpcClient.request("chat.send", {
       sessionKey: params.sessionKey,
       message: params.text,
       deliver: false,
       idempotencyKey: uuid(),
+      attachments,
     });
   }
 
   async chatAbort(sessionKeyOrRunId: string): Promise<void> {
     await this.rpcClient.request("chat.abort", { sessionKey: sessionKeyOrRunId });
+  }
+
+  async chatInject(sessionKey: string, content: string): Promise<void> {
+    await this.rpcClient.request("chat.inject", {
+      sessionKey,
+      content,
+    });
   }
 
   async sessionsList(): Promise<SessionInfo[]> {
@@ -113,6 +147,21 @@ export class WsAdapter implements GatewayAdapter {
       key: sessionKey,
       ...(options?.deleteTranscript != null ? { deleteTranscript: options.deleteTranscript } : {}),
     });
+  }
+
+  async sessionsPatch(sessionKey: string, patch: SessionPatchParams): Promise<void> {
+    await this.rpcClient.request("sessions.patch", {
+      key: sessionKey,
+      ...patch,
+    });
+  }
+
+  async sessionsReset(sessionKey: string): Promise<void> {
+    await this.rpcClient.request("sessions.reset", { key: sessionKey });
+  }
+
+  async sessionsCompact(sessionKey: string): Promise<void> {
+    await this.rpcClient.request("sessions.compact", { key: sessionKey });
   }
 
   async channelsStatus(): Promise<ChannelInfo[]> {
