@@ -101,8 +101,9 @@ export class WsAdapter implements GatewayAdapter {
         if (!match && !attachment.content) {
           return null;
         }
+        const attachmentType = attachment.mimeType.startsWith("image/") ? "image" : "file";
         return {
-          type: "image",
+          type: attachmentType,
           mimeType: attachment.mimeType,
           content: attachment.content ?? match?.[2] ?? "",
           name: attachment.name,

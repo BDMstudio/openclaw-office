@@ -96,10 +96,10 @@ export function ChatDockBar() {
         <input
           ref={fileInputRef}
           type="file"
-          accept="image/*"
           multiple
           onChange={handleAttachmentChange}
           className="hidden"
+          title={t("page.addAttachment")}
         />
         <button
           type="button"

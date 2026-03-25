@@ -3,6 +3,8 @@ import {
   Download,
   Eye,
   EyeOff,
+  File,
+  FileText,
   Loader2,
   MessageSquareMore,
   MessageSquarePlus,
@@ -433,15 +435,22 @@ export function ChatPage() {
                       key={attachment.id}
                       className="relative overflow-hidden rounded-lg border border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-800"
                     >
-                      {attachment.dataUrl ? (
+                      {attachment.mimeType.startsWith("image/") && attachment.dataUrl ? (
                         <img
                           src={attachment.dataUrl}
                           alt={attachment.name ?? attachment.mimeType}
                           className="h-16 w-16 object-cover"
                         />
                       ) : (
-                        <div className="flex h-16 w-16 items-center justify-center px-1 text-center text-[10px] text-gray-500">
-                          {attachment.name ?? attachment.mimeType}
+                        <div className="flex h-16 w-16 flex-col items-center justify-center gap-1 px-1 text-center">
+                          {attachment.mimeType.startsWith("text/") ? (
+                            <FileText className="h-6 w-6 text-blue-400" />
+                          ) : (
+                            <File className="h-6 w-6 text-gray-400" />
+                          )}
+                          <span className="line-clamp-2 text-[9px] leading-tight text-gray-500 dark:text-gray-400">
+                            {attachment.name ?? attachment.mimeType}
+                          </span>
                         </div>
                       )}
                       <button
@@ -487,7 +496,6 @@ export function ChatPage() {
                   <input
                     ref={fileInputRef}
                     type="file"
-                    accept="image/*"
                     multiple
                     onChange={handleAttachmentChange}
                     className="hidden"
