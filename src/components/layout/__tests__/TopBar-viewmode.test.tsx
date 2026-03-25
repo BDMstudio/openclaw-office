@@ -31,7 +31,7 @@ describe("TopBar navigation", () => {
   it("renders Office, Chat, and Console menu items", () => {
     renderWithRouter();
     expect(screen.getByRole("button", { name: "办公室" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "对话" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "聊天" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "控制台" })).toBeInTheDocument();
   });
 
@@ -51,7 +51,7 @@ describe("TopBar navigation", () => {
   it("highlights Chat when current page is chat", () => {
     useOfficeStore.setState({ currentPage: "chat" });
     renderWithRouter(["/chat"]);
-    const btn = screen.getByRole("button", { name: "对话" });
+    const btn = screen.getByRole("button", { name: "聊天" });
     expect(btn.className).toContain("text-gray-900");
   });
 });

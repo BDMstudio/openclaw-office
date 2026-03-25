@@ -6,10 +6,10 @@
     "tokensLabel": "Tokens",
     "console": "控制台",
     "office": "办公室",
-    "chat": "对话",
+    "chat": "聊天",
     "navigation": "主导航",
     "pageTitles": {
-      "chat": "对话",
+      "chat": "聊天",
       "dashboard": "仪表盘",
       "channels": "渠道",
       "skills": "技能",
