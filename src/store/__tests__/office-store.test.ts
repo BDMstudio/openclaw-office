@@ -215,7 +215,7 @@ describe("office-store", () => {
     });
 
     it("setTheme persists to localStorage", () => {
-      const spy = vi.spyOn(Storage.prototype, "setItem");
+      const spy = vi.spyOn(globalThis.localStorage, "setItem");
       useOfficeStore.getState().setTheme("light");
       expect(spy).toHaveBeenCalledWith("openclaw-theme", "light");
       spy.mockRestore();
